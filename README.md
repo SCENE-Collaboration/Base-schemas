@@ -19,10 +19,11 @@ pip install -e .
 pip install .
 ```
 
-Alternatively, the package can be directly installed using (`main` can be replaced by a commit hash or branch):
+Alternatively, the package can be directly installed using one of the following commands (`main` can be replaced by a commit hash or branch):
 
 ```
-pip install git+ssh://git@github.com/SCENE/Base-schemas.git@main
+pip install "git+ssh://git@github.com/SCENE-Collaboration/Base-schemas.git@main"
+pip install "git+https://github.com/SCENE-Collaboration/Base-schemas.git@main"
 ```
 
 ### Building a distribution

@@ -1,0 +1,59 @@
+name: Generate ERD
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  MYSQL_ROOT_PASSWORD: simple
+
+jobs:
+  generate-erd:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
+          MYSQL_ROOT_HOST: "%"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DJ_HOST: 127.0.0.1
+      DJ_USER: root
+      DJ_PASS: ${{ env.MYSQL_ROOT_PASSWORD }}
+      MPLCONFIGDIR: /tmp/matplotlib
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+
+      - name: Generate ERD
+        run: |
+          python tests/generate_erd.py
+
+      - name: Upload ERD artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-schemas-erd
+          path: base_schemas_erd.png
