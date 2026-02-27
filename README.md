@@ -1,7 +1,9 @@
 
-# Mathis lab base tables for all datajoint pipelines
+# Mathis lab base tables for all DataJoint pipelines
 
-The `base_schemas` folder is a python package that contains the definition of main schemas (ensemble of tables) that are shared across distinct pipelines. The actual main schemas are `mice` and `exp`.
+The `base_schemas` folder is a python package that contains the definition of main schemas (ensemble of tables) that are shared across distinct pipelines. The actual main schemas are `mice` and `exp`, and they are illustrated in the following diagram:
+
+![base_schemas_ERD](./base_schemas_erd.png)
 
 Main schemas definitions should be the same for all pipelines, so the organization via separate package helps to isolate the code during development and deployment.
 
@@ -28,14 +30,15 @@ pip install "git+https://github.com/SCENE-Collaboration/Base-schemas.git@main"
 
 ### Building a distribution
 
-To build an installable package (source release or wheel), run
+To build an installable package (source release or wheel), run:
 
 ```
 pip install build
 python -m build .
 ```
 
-which will create the release files in the `dist/` subfolder:
+which will create the release files in the `dist/` subfolder.
+For example, for version "1.1.0", it will create:
 
 ```
 dist
@@ -54,7 +57,7 @@ This workflow is useful when e.g. distributing package versions for use within a
 ## Usage
 
 ``` python
-from  base_schemas.schemas import mice, exp
+from base_schemas.schemas import mice, exp
 print(mice.Mouse())
 ```
 
