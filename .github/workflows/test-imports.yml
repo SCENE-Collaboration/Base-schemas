@@ -1,7 +1,6 @@
 name: Test schemas imports
 
 on:
-  push:
   workflow_dispatch:
 
 jobs:

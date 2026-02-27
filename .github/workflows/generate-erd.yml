@@ -2,11 +2,7 @@ name: Generate ERD
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
-
-env:
-  MYSQL_ROOT_PASSWORD: simple
 
 jobs:
   generate-erd:
@@ -16,7 +12,7 @@ jobs:
       mysql:
         image: mysql:5.7
         env:
-          MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: simple
           MYSQL_ROOT_HOST: "%"
         ports:
           - 3306:3306
@@ -29,7 +25,7 @@ jobs:
     env:
       DJ_HOST: 127.0.0.1
       DJ_USER: root
-      DJ_PASS: ${{ env.MYSQL_ROOT_PASSWORD }}
+      DJ_PASS: simple
       MPLCONFIGDIR: /tmp/matplotlib
 
     steps:
