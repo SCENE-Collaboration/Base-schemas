@@ -6,14 +6,30 @@ import datajoint as dj
 
 
 def configure_datajoint():
-    dj.config.update(
-        {
-            "database.host": os.environ["DJ_HOST"],
-            "database.user": os.environ["DJ_USER"],
-            "database.password": os.environ["DJ_PASS"],
-            "database.port": int(os.environ.get("DJ_PORT", "3306")),
-        }
-    )
+    settings = {
+        "database.host": os.environ["DJ_HOST"],
+        "database.user": os.environ["DJ_USER"],
+        "database.password": os.environ["DJ_PASS"],
+        "database.port": int(os.environ.get("DJ_PORT", "3306")),
+    }
+
+    # DataJoint config API differs across versions:
+    # - older: dj.config.update({...})
+    # - newer: item assignment / typed config objects
+    if hasattr(dj.config, "update"):
+        dj.config.update(settings)
+        return
+
+    for key, value in settings.items():
+        try:
+            dj.config[key] = value
+            continue
+        except Exception:
+            pass
+
+        section, field = key.split(".", 1)
+        section_obj = getattr(dj.config, section)
+        setattr(section_obj, field, value)
 
 
 def wait_for_database(max_attempts=30, delay_seconds=2):

@@ -10,7 +10,7 @@ readme = "base_schemas/schemas/README.md"
 requires-python = ">=3.8"
 dependencies = [
     "datajoint>=0.13", # for dj.Schema() lazy style
-    "packaging", # required by datajoint >= 1
+    "packaging", # required by datajoint > 1
 ]
 
 [tool.setuptools.packages.find]
