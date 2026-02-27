@@ -7,7 +7,7 @@ import pathlib
 
 import datajoint as dj
 
-schema = dj.schema("mice", locals(), create_tables=True)
+schema = dj.Schema("mice", locals(), create_tables=True)
 #schema = dj.Schema() # does not require a database connection, opposite to the line above
 
 

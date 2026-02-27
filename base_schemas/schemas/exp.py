@@ -5,7 +5,7 @@ from base_schemas.schemas import mice
     Minimal Schema version for experimental information
 """
 
-schema = dj.schema("exp", locals(), create_tables=True)
+schema = dj.Schema("exp", locals(), create_tables=True)
 #schema = dj.Schema() # does not require a database connection, opposite to the line above
 
 
