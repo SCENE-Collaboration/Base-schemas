@@ -1,5 +1,6 @@
 import os
 import time
+import traceback
 
 import datajoint as dj
 
@@ -35,6 +36,10 @@ def generate_erd(output_path="base_schemas_erd.png"):
 
 
 if __name__ == "__main__":
-    configure_datajoint()
-    wait_for_database()
-    generate_erd()
+    try:
+        configure_datajoint()
+        wait_for_database()
+        generate_erd()
+    except Exception:
+        traceback.print_exc()
+        raise
