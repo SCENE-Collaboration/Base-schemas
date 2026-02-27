@@ -1,4 +1,4 @@
-name: Test Imports
+name: Test schemas imports
 
 on:
   push:
