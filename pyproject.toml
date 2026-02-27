@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "base-schemas"
+version = "1.1.0"
+description = "Mathis lab base DataJoint schemas"
+readme = "base_schemas/schemas/README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "datajoint>=0.13", # for dj.Schema() lazy style
+]
+
+[tool.setuptools.packages.find]
+include = ["base_schemas*"]

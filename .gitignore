@@ -1,0 +1,5 @@
+__pycache__/
+base_schemas.egg-info/
+dist/
+.venv
+.python-version
