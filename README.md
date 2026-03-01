@@ -61,3 +61,6 @@ from base_schemas.schemas import mice, exp
 print(mice.Mouse())
 ```
 
+## Acknowledgments
+
+We thank Prof. Mackenzie Mathis, Dr. Tanmay Nath, Dr. Gary Kane, and Dr. Mariia Popova for their early contributions to this codebase, which helped establish the foundation of the shared schemas used across pipelines.
