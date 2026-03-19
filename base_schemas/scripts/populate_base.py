@@ -8,7 +8,6 @@ from pathlib import Path
 import datajoint as dj
 import numpy as np
 
-
 FILENAME_PATTERN = re.compile(
     r"^(?P<mouse_name>.+)_(?P<date>\d{4}-\d{2}-\d{2})_(?P<attempt>\d+)\.(?P<suffix>json|npy)$"
 )
@@ -86,16 +85,16 @@ def _normalize_payload(raw_payload):
     if "day" in payload:
         payload["day"] = _coerce_int(payload["day"], "day")
     if "session_increment" in payload:
-        payload["session_increment"] = _coerce_int(payload["session_increment"], "session_increment")
+        payload["session_increment"] = _coerce_int(
+            payload["session_increment"], "session_increment"
+        )
     return payload
 
 
 def _parse_candidate_path(path):
     match = FILENAME_PATTERN.match(path.name)
     if match is None:
-        raise ValueError(
-            "File name must match {mouse_name}_YYYY-MM-DD_{attempt}.json or .npy"
-        )
+        raise ValueError("File name must match {mouse_name}_YYYY-MM-DD_{attempt}.json or .npy")
 
     return {
         "mouse_name": match.group("mouse_name"),
@@ -120,10 +119,22 @@ def _discover_candidate_files(base_path):
 def _existing_session_keys():
     from base_schemas.schemas.exp import Session
 
-    return {
-        (row["mouse_name"], row["doe"], row["attempt"])
-        for row in Session.to_dicts()
-    }
+    return {(row["mouse_name"], row["doe"], row["attempt"]) for row in Session.to_dicts()}
+
+
+def _get_latest_session_date(mouse_relation):
+
+    from base_schemas.schemas.exp import Session
+
+    session_dates, session_increments = (Session & mouse_relation).fetch(
+        "doe",
+        "session_increment",
+    )
+    if len(session_increments) == 0:
+        return None
+
+    latest_index = int(np.argmax(session_increments))
+    return session_dates[latest_index]
 
 
 @lru_cache(maxsize=None)
@@ -158,6 +169,15 @@ def _validate_payload(payload, path_metadata):
 
 def _compute_session_fields(mouse_relation, session_date, payload, fix_dates):
     starting_date = mouse_relation.get_starting_date()
+    latest_session_date = _get_latest_session_date(mouse_relation)
+
+    if latest_session_date is not None and session_date < latest_session_date:
+        raise ValueError(
+            "Session date "
+            f"{session_date} is earlier than the latest existing session date "
+            f"{latest_session_date}; inserting it would require reordering session increments"
+        )
+
     if starting_date is None:
         day = 1
         session_increment = 1
@@ -175,11 +195,7 @@ def _compute_session_fields(mouse_relation, session_date, payload, fix_dates):
         raise ValueError(f"Payload day {payload_day} does not match computed day {day}")
 
     payload_increment = payload.get("session_increment")
-    if (
-        payload_increment is not None
-        and payload_increment != session_increment
-        and not fix_dates
-    ):
+    if payload_increment is not None and payload_increment != session_increment and not fix_dates:
         raise ValueError(
             "Payload session_increment "
             f"{payload_increment} does not match computed session_increment {session_increment}"
@@ -189,14 +205,8 @@ def _compute_session_fields(mouse_relation, session_date, payload, fix_dates):
 
 
 def _insert_payload(payload, day, session_increment):
-    from base_schemas.schemas.exp import (
-        Session,
-        SessionScoreSheet,
-    )
-    from base_schemas.schemas.mice import (
-        MouseScoreSheet,
-        MouseScoreSheet_WaterRestriction,
-    )
+    from base_schemas.schemas.exp import Session, SessionScoreSheet
+    from base_schemas.schemas.mice import MouseScoreSheet, MouseScoreSheet_WaterRestriction
 
     insert_row = {
         **payload,
@@ -299,11 +309,22 @@ def populate_base(suppress_errors=False, fix_dates=False, logger=None):
                 continue
             raise
 
+
 def create_test_data():
     from base_schemas.schemas.mice import Mouse
-    Mouse.insert1({"mouse_name": "TestMouse", "mouse_id": 42, "strain": "N/A", "sex": "U", "dob": dt.date(2025, 1, 1)}, skip_duplicates=True,)
-    #TODO create npy and json files here ?
-    test_meta =  {
+
+    Mouse.insert1(
+        {
+            "mouse_name": "TestMouse",
+            "mouse_id": 42,
+            "strain": "N/A",
+            "sex": "U",
+            "dob": dt.date(2025, 1, 1),
+        },
+        skip_duplicates=True,
+    )
+    # TODO create npy and json files here ?
+    test_meta = {
         "mouse_name": "TestMouse",
         "doe": "2025-11-06",
         "attempt": "1",
@@ -320,10 +341,13 @@ def create_test_data():
         "weight_percentage": "5",
     }
 
+
 if __name__ == "__main__":
     test_environment = bool(int(os.environ.get("TEST_BASE", "0")))
     fix_dates = bool(int(os.environ.get("FIX_DATES", "0")))
     if test_environment:
-        print("Running in test environment: errors will be suppressed and logged instead of raised.")
+        print(
+            "Running in test environment: errors will be suppressed and logged instead of raised."
+        )
         create_test_data()
     populate_base(suppress_errors=not test_environment, fix_dates=fix_dates)

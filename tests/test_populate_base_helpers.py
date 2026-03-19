@@ -15,15 +15,19 @@ from base_schemas.scripts.populate_base import (
 
 
 class FakeMouseRelation:
-    def __init__(self, starting_date, next_increment):
+    def __init__(self, starting_date, next_increment, latest_session_date=None):
         self._starting_date = starting_date
         self._next_increment = next_increment
+        self._latest_session_date = latest_session_date
 
     def get_starting_date(self):
         return self._starting_date
 
     def get_session_increment(self):
         return self._next_increment
+
+    def get_latest_session_date(self):
+        return self._latest_session_date
 
 
 def _example_payload():
@@ -119,6 +123,7 @@ def test_compute_session_fields_for_existing_mouse():
     mouse_relation = FakeMouseRelation(
         starting_date=dt.date(2025, 11, 1),
         next_increment=5,
+        latest_session_date=dt.date(2025, 11, 5),
     )
     payload = {"mouse_name": "TestMouse"}
 
@@ -137,6 +142,7 @@ def test_compute_session_fields_rejects_payload_mismatch_without_fix_dates():
     mouse_relation = FakeMouseRelation(
         starting_date=dt.date(2025, 11, 1),
         next_increment=5,
+        latest_session_date=dt.date(2025, 11, 5),
     )
     payload = {"mouse_name": "TestMouse", "day": 1}
 
@@ -153,6 +159,7 @@ def test_compute_session_fields_allows_payload_mismatch_with_fix_dates():
     mouse_relation = FakeMouseRelation(
         starting_date=dt.date(2025, 11, 1),
         next_increment=5,
+        latest_session_date=dt.date(2025, 11, 5),
     )
     payload = {"mouse_name": "TestMouse", "day": 1, "session_increment": 1}
 
@@ -165,3 +172,20 @@ def test_compute_session_fields_allows_payload_mismatch_with_fix_dates():
 
     assert day == 6
     assert session_increment == 5
+
+
+def test_compute_session_fields_rejects_session_that_would_be_squeezed_in():
+    mouse_relation = FakeMouseRelation(
+        starting_date=dt.date(2025, 11, 1),
+        next_increment=5,
+        latest_session_date=dt.date(2025, 11, 6),
+    )
+    payload = {"mouse_name": "TestMouse"}
+
+    with pytest.raises(ValueError, match="latest existing session date"):
+        _compute_session_fields(
+            mouse_relation,
+            dt.date(2025, 11, 5),
+            payload,
+            fix_dates=False,
+        )
