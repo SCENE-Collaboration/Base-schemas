@@ -1,0 +1,1 @@
+"""Script entry points and helpers for base_schemas."""
