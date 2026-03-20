@@ -106,7 +106,7 @@ def test_normalize_payload_coerces_types():
 
 def test_compute_session_fields_for_first_session():
     mouse_relation = FakeMouseRelation(starting_date=None, next_increment=0)
-    payload = {"mouse_name": "TestMouse"}
+    payload = {"mouse_name": "TestMouse", "day": 1, "session_increment": 1}
 
     day, session_increment = _compute_session_fields(
         mouse_relation,
@@ -125,7 +125,7 @@ def test_compute_session_fields_for_existing_mouse():
         next_increment=5,
         latest_session_date=dt.date(2025, 11, 5),
     )
-    payload = {"mouse_name": "TestMouse"}
+    payload = {"mouse_name": "TestMouse", "day": 6, "session_increment": 5}
 
     day, session_increment = _compute_session_fields(
         mouse_relation,
@@ -147,6 +147,23 @@ def test_compute_session_fields_rejects_payload_mismatch_without_fix_dates():
     payload = {"mouse_name": "TestMouse", "day": 1}
 
     with pytest.raises(ValueError, match="Payload day"):
+        _compute_session_fields(
+            mouse_relation,
+            dt.date(2025, 11, 6),
+            payload,
+            fix_dates=False,
+        )
+
+
+def test_compute_session_fields_rejects_missing_day_without_fix_dates():
+    mouse_relation = FakeMouseRelation(
+        starting_date=dt.date(2025, 11, 1),
+        next_increment=5,
+        latest_session_date=dt.date(2025, 11, 5),
+    )
+    payload = {"mouse_name": "TestMouse", "session_increment": 5}
+
+    with pytest.raises(ValueError, match="Payload must include day"):
         _compute_session_fields(
             mouse_relation,
             dt.date(2025, 11, 6),

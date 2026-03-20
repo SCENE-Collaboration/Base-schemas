@@ -193,15 +193,11 @@ def _compute_session_fields(mouse_relation, session_date, payload, fix_dates):
         )
 
     payload_day = payload.get("day")
-    if payload_day is not None and payload_day != day and not fix_dates:
-        raise ValueError(f"Payload day {payload_day} does not match computed day {day}")
-
-    payload_increment = payload.get("session_increment")
-    if payload_increment is not None and payload_increment != session_increment and not fix_dates:
-        raise ValueError(
-            "Payload session_increment "
-            f"{payload_increment} does not match computed session_increment {session_increment}"
-        )
+    if not fix_dates:
+        if payload_day is None:
+            raise ValueError("Payload must include day when fix_dates is false")
+        if payload_day != day:
+            raise ValueError(f"Payload day {payload_day} does not match computed day {day}")
 
     return day, session_increment
 
