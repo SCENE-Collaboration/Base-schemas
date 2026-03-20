@@ -8,8 +8,8 @@ from base_schemas.schemas import mice
     Minimal Schema version for experimental information
 """
 PREFIX = os.getenv("DJ_SCHEMA_PREFIX", "")
-schema = dj.Schema(f"{PREFIX}exp", locals(), create_tables=True)
-# schema = dj.Schema() # does not require a database connection, opposite to the line above
+#schema = dj.Schema(f"{PREFIX}exp", locals(), create_tables=True)
+schema = dj.Schema() # does not require a database connection, opposite to the line above
 
 
 @schema

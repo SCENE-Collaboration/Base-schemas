@@ -8,8 +8,8 @@ import pathlib
 import datajoint as dj
 
 PREFIX = os.getenv("DJ_SCHEMA_PREFIX", "")
-schema = dj.Schema(f"{PREFIX}mice", locals(), create_tables=True)
-# schema = dj.Schema() # does not require a database connection, opposite to the line above
+#schema = dj.Schema(f"{PREFIX}mice", locals(), create_tables=True)
+schema = dj.Schema() # does not require a database connection, opposite to the line above
 
 
 @schema
