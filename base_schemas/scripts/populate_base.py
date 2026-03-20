@@ -123,6 +123,8 @@ def _existing_session_keys():
 
 
 def _get_latest_session_date(mouse_relation):
+    if hasattr(mouse_relation, "get_latest_session_date"):
+        return mouse_relation.get_latest_session_date()
 
     from base_schemas.schemas.exp import Session
 
@@ -242,7 +244,9 @@ def _format_error(path, payload, error):
     return f"Error processing {path.name} for {mouse_label}: {error}"
 
 
-def populate_base(suppress_errors=False, fix_dates=False, logger=None):
+def populate_base(
+    path_to_basemeta: str | Path | None = None, suppress_errors=False, fix_dates=False, logger=None
+):
     """
     Populate the base schemas from .json and .npy files under PATH_TO_BASEMETA.
 
@@ -250,9 +254,10 @@ def populate_base(suppress_errors=False, fix_dates=False, logger=None):
     and MouseScoreSheet_WaterRestriction schemas. Files for mice that are not already
     present in Mouse are skipped.
     """
-    path_to_basemeta = os.environ.get("PATH_TO_BASEMETA")
     if path_to_basemeta is None:
-        raise ValueError("PATH_TO_BASEMETA environment variable is not set.")
+        path_to_basemeta = os.environ.get("PATH_TO_BASEMETA")
+        if path_to_basemeta is None:
+            raise ValueError("PATH_TO_BASEMETA environment variable is not set.")
 
     from base_schemas.schemas.mice import Mouse
 
@@ -310,44 +315,7 @@ def populate_base(suppress_errors=False, fix_dates=False, logger=None):
             raise
 
 
-def create_test_data():
-    from base_schemas.schemas.mice import Mouse
-
-    Mouse.insert1(
-        {
-            "mouse_name": "TestMouse",
-            "mouse_id": 42,
-            "strain": "N/A",
-            "sex": "U",
-            "dob": dt.date(2025, 1, 1),
-        },
-        skip_duplicates=True,
-    )
-    # TODO create npy and json files here ?
-    test_meta = {
-        "mouse_name": "TestMouse",
-        "doe": "2025-11-06",
-        "attempt": "1",
-        "experimenter_name": "user",
-        "rig_id": "1",
-        "anesthesia_name": "awake",
-        "opto_name": "none",
-        "task_name": "AR_visual_discrimination",
-        "doc": "2025-11-06",
-        "housing_assay": "Yes",
-        "general_assay": "Assay5",
-        "body_condition": "BodyCondition3",
-        "license": "N/A",
-        "weight_percentage": "5",
-    }
-
-
 if __name__ == "__main__":
     test_environment = bool(int(os.environ.get("TEST_BASE", "0")))
     fix_dates = bool(int(os.environ.get("FIX_DATES", "0")))
-    if test_environment:
-        print(
-            "Running in test environment: errors will be suppressed and logged instead of raised."
-        )
-        create_test_data()
     populate_base(suppress_errors=not test_environment, fix_dates=fix_dates)

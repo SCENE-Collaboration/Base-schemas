@@ -1,11 +1,12 @@
-name: Generate ERD
+name: ERD and integration tests
 
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  generate-erd:
+  erd-and-integration:
     runs-on: ubuntu-latest
 
     services:
@@ -24,6 +25,7 @@ jobs:
 
     env:
       DJ_HOST: 127.0.0.1
+      DJ_PORT: 3306
       DJ_USER: root
       DJ_PASS: simple
       MPLCONFIGDIR: /tmp/matplotlib
@@ -40,7 +42,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .
+          python -m pip install -e . pytest numpy
           sudo apt-get update
           sudo apt-get install -y graphviz
 
@@ -53,3 +55,7 @@ jobs:
         with:
           name: base-schemas-erd
           path: base_schemas_erd.png
+
+      - name: Run integration tests
+        run: |
+          pytest -q tests/test_imports.py tests/test_populate_base_db.py

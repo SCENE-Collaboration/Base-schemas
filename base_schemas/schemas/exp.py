@@ -1,12 +1,15 @@
+import os
+
 import datajoint as dj
+
 from base_schemas.schemas import mice
 
 """
     Minimal Schema version for experimental information
 """
-
-schema = dj.Schema("exp", locals(), create_tables=True)
-#schema = dj.Schema() # does not require a database connection, opposite to the line above
+PREFIX = os.getenv("DJ_SCHEMA_PREFIX", "")
+schema = dj.Schema(f"{PREFIX}exp", locals(), create_tables=True)
+# schema = dj.Schema() # does not require a database connection, opposite to the line above
 
 
 @schema
@@ -150,8 +153,7 @@ class Session(dj.Manual):
     @classmethod
     def get_sessions_for_pipeline(cls, pipeline_name):
         return cls & [
-            "task_name = '{}'".format(task)
-            for task in Task.get_pipeline_task_names(pipeline_name)
+            "task_name = '{}'".format(task) for task in Task.get_pipeline_task_names(pipeline_name)
         ]
 
 

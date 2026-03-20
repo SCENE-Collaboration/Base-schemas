@@ -7,8 +7,9 @@ import pathlib
 
 import datajoint as dj
 
-schema = dj.Schema("mice", locals(), create_tables=True)
-#schema = dj.Schema() # does not require a database connection, opposite to the line above
+PREFIX = os.getenv("DJ_SCHEMA_PREFIX", "")
+schema = dj.Schema(f"{PREFIX}mice", locals(), create_tables=True)
+# schema = dj.Schema() # does not require a database connection, opposite to the line above
 
 
 @schema
@@ -28,7 +29,7 @@ class Strain(dj.Lookup):
 @schema
 class Mouse(dj.Manual):
 
-    definition = """ 
+    definition = """
       mouse_name    : varchar(128)             # name of mouse (unique)
       ---
       mouse_id      : int                      # unique mouse id, ATTENTION: take care that this is really unique
@@ -59,9 +60,7 @@ class Mouse(dj.Manual):
         """
 
         if len(self) != 1:  # Check if self corresponds only to a single mouse
-            raise Exception(
-                "Query resulted in %i mice! Only 1 result allowed..." % len(self)
-            )
+            raise Exception("Query resulted in %i mice! Only 1 result allowed..." % len(self))
 
         from . import exp
 
@@ -116,9 +115,7 @@ class Mouse(dj.Manual):
         """
 
         if len(self) != 1:  # Check if self corresponds only to a single mouse
-            raise Exception(
-                "Query resulted in %i mice! Only 1 result allowed..." % len(self)
-            )
+            raise Exception("Query resulted in %i mice! Only 1 result allowed..." % len(self))
 
         from . import exp
 
@@ -132,7 +129,7 @@ class Mouse(dj.Manual):
 @schema
 class SurgeryType(dj.Lookup):
 
-    definition = """  
+    definition = """
     surgery_type    : varchar(128) # surgery short name
     ---
     """
@@ -189,12 +186,10 @@ class MouseLicensingGeneva(dj.Lookup):
 @schema
 class MouseScoreSheet_BodyCondition(dj.Lookup):
 
-    definition = """ 
-    
+    definition = """
     body_condition   : varchar(128) # short body condition name
     ---
     define_score     : varchar(2048)
-    
     """
     contents = [
         ["BodyCondition1", "emaciated"],
@@ -208,7 +203,7 @@ class MouseScoreSheet_BodyCondition(dj.Lookup):
 @schema
 class MouseScoreSheet_GeneralAssay(dj.Lookup):
 
-    definition = """ 
+    definition = """
     general_assay   : varchar(128) # general assay score name
     ---
     define_score     : varchar(2048)
@@ -239,7 +234,7 @@ class MouseScoreSheet_HousingAssesment(dj.Lookup):
 @schema
 class MouseScoreSheet_WaterRestriction(dj.Manual):
 
-    definition = """ 
+    definition = """
     -> Mouse
     doc : date          # date of check
     ---
@@ -250,7 +245,7 @@ class MouseScoreSheet_WaterRestriction(dj.Manual):
 @schema
 class MouseScoreSheet(dj.Manual):
 
-    definition = """ 
+    definition = """
     -> Mouse
     doc : date          # date of check
     ---
