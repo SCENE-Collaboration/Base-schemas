@@ -58,7 +58,7 @@ jobs:
 
       - name: Generate ERD
         id: generate_erd
-        if: matrix.python-version != '3.8'
+        if: matrix.python-version == '3.12'
         run: |
           python tests/generate_erd.py
 
