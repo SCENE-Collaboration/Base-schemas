@@ -29,6 +29,7 @@ jobs:
           --health-retries=20
 
     env:
+      USE_LAZY_SCHEMA: ${{ matrix.python-version == '3.8' && '1' || '' }}
       DJ_HOST: 127.0.0.1
       DJ_PORT: 3306
       DJ_USER: root
@@ -51,17 +52,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y graphviz
 
+      - name: Run import test
+        run: |
+          pytest -q tests/test_imports.py
+
       - name: Generate ERD
+        id: generate_erd
+        if: matrix.python-version == '3.12'
         run: |
           python tests/generate_erd.py
 
       - name: Upload ERD artifact
-        if: matrix.python-version == '3.12'
+        if: steps.generate_erd.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: base-schemas-erd
           path: base_schemas_erd.png
 
       - name: Run integration tests
+        if: matrix.python-version != '3.8'
         run: |
-          pytest -q tests/test_imports.py tests/test_populate_base_db.py
+          pytest -q tests/test_populate_base_db.py
