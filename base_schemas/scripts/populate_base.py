@@ -84,9 +84,9 @@ def _normalize_payload(raw_payload):
         payload["rig_id"] = _coerce_int(payload["rig_id"], "rig_id")
 
     payload["session_notes"] = str(payload.get("session_notes", ""))
-    if "day" in payload:
+    if payload.get("day") is not None:
         payload["day"] = _coerce_int(payload["day"], "day")
-    if "session_increment" in payload:
+    if payload.get("session_increment") is not None:
         payload["session_increment"] = _coerce_int(
             payload["session_increment"], "session_increment"
         )
