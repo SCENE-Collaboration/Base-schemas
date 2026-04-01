@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import logging
 import os
 import re
 from functools import lru_cache
@@ -257,6 +258,8 @@ def populate_base(
         if path_to_basemeta is None:
             raise ValueError("PATH_TO_BASEMETA environment variable is not set.")
 
+    logger = logger or logging.getLogger(__name__)
+
     from base_schemas.schemas.mice import Mouse
 
     basemeta_path = Path(path_to_basemeta)
@@ -288,10 +291,7 @@ def populate_base(
                     f"Skipping {mouse_meta_path.name}: mouse "
                     f"{normalized_payload['mouse_name']!r} is not present in Mouse"
                 )
-                if logger is not None:
-                    logger.warning(message)
-                else:
-                    print(message)
+                logger.warning(message)
                 continue
 
             day, session_increment = _compute_session_fields(
@@ -300,15 +300,19 @@ def populate_base(
                 normalized_payload,
                 fix_dates,
             )
+
+            logger.info(
+                f"Inserting session for {normalized_payload['mouse_name']} on {normalized_payload['doe']} "
+                f"(day {day}, session increment {session_increment})"
+            )
             _insert_payload(normalized_payload, day, session_increment)
+            logger.info("Successfully inserted session")
+
             existing_session_keys.add(session_key)
         except Exception as error:
             message = _format_error(mouse_meta_path, normalized_payload or raw_payload, error)
             if suppress_errors:
-                if logger is not None:
-                    logger.error(message)
-                else:
-                    print(message)
+                logger.error(message)
                 continue
             raise
 

@@ -72,4 +72,4 @@ jobs:
       - name: Run integration tests
         if: matrix.python-version != '3.8'
         run: |
-          pytest -q tests/test_populate_base_db.py
+          pytest -q tests/test_populate_base_db.py -o log_cli=true --log-cli-level=INFO
