@@ -60,7 +60,7 @@ def test_parse_candidate_path():
 
 
 def test_parse_candidate_path_rejects_invalid_name():
-    with pytest.raises(ValueError, match="File name must match"):
+    with pytest.raises(ValueError, match="File name bad-name.json must match"):
         _parse_candidate_path(Path("bad-name.json"))
 
 
