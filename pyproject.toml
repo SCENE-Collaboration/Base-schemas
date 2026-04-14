@@ -15,3 +15,10 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 include = ["base_schemas*"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:fetch\\(\\) is deprecated in DataJoint 2\\.0.*:DeprecationWarning",
+    "ignore:Positional inserts \\(tuples/lists\\) are deprecated and will be removed in a future version\\..*:DeprecationWarning",
+    "ignore:Table class name `.*` contains underscores\\. CamelCase names without underscores are recommended\\.:UserWarning",
+]
