@@ -97,7 +97,7 @@ def _normalize_payload(raw_payload):
 def _parse_candidate_path(path):
     match = FILENAME_PATTERN.match(path.name)
     if match is None:
-        raise ValueError(f"File name {path.name} must match mousename_date_attempt.json or .npy")
+        raise ValueError(f"File name {path.name} must match mousename_YYYY-MM-DD_attempt.json or .npy")
 
     return {
         "mouse_name": match.group("mouse_name"),
