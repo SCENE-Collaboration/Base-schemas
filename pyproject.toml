@@ -9,7 +9,7 @@ description = "Mathis lab base DataJoint schemas"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    "datajoint>=0.13", # for dj.Schema() lazy style
+    "datajoint>=2.2", # for dj.Instance (multi-database support)
     "packaging", # required by datajoint > 1
 ]
 
