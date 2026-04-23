@@ -81,8 +81,7 @@ def sync_tables(
 
         rows = src_table.fetch(as_dict=True)
         before = len(tgt_table)
-        with tgt_table.connection.transaction:
-            tgt_table.insert(rows, skip_duplicates=True, ignore_extra_fields=True)
+        tgt_table.insert(rows, skip_duplicates=True, ignore_extra_fields=True)
         after = len(tgt_table)
         inserted = after - before
 
