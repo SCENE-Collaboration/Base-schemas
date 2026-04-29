@@ -87,11 +87,24 @@ def sync_tables(
     results = {}
     for entry in tables:
         if isinstance(entry, tuple):
+            if len(entry) != 2 or not all(isinstance(name, str) for name in entry):
+                raise ValueError(
+                    "Invalid tables entry: tuple entries must be "
+                    "(src_name, tgt_name) with exactly two strings. "
+                    "Supported forms are: a table name string, a "
+                    "(src_name, tgt_name) tuple of strings, or an object "
+                    "with a full_table_name attribute."
+                )
             src_name, tgt_name = entry
         elif isinstance(entry, str):
             src_name = tgt_name = entry
         else:
             src_name = tgt_name = entry.full_table_name
+        if src_name in results:
+            raise ValueError(
+                f"Duplicate source table name {src_name!r} in `tables`: each "
+                "source table may appear at most once per sync_tables call."
+            )
         display = src_name if src_name == tgt_name else f"{src_name} -> {tgt_name}"
         logger.info("Syncing table %s", display)
 

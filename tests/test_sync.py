@@ -241,3 +241,28 @@ def test_sync_accepts_src_tgt_tuple_entry(patch_instance_api):
     assert results[src_name] == {"fetched": 1, "inserted": 1, "target": tgt_name}
     assert source_table._last_restriction == "body_condition = 'BC1'"
     assert len(target_table) == 1
+
+
+@pytest.mark.parametrize("bad_entry", [("only_one",), ("a", "b", "c"), ("a", 42)])
+def test_sync_rejects_malformed_tuple_entry(patch_instance_api, bad_entry):
+    with patch.object(sync, "_build_instance", side_effect=[FakeInstance({}), FakeInstance({})]):
+        with pytest.raises(ValueError, match="tuple entries must be"):
+            sync.sync_tables(
+                {"host": "src", "user": "u", "password": "p"},
+                {"host": "tgt", "user": "u", "password": "p"},
+                tables=[bad_entry],
+            )
+
+
+def test_sync_rejects_duplicate_source_name(patch_instance_api):
+    name = "`mice`.`mouse`"
+    source_instance = FakeInstance({name: FakeFreeTable(name)})
+    target_instance = FakeInstance({name: FakeFreeTable(name)})
+
+    with patch.object(sync, "_build_instance", side_effect=[source_instance, target_instance]):
+        with pytest.raises(ValueError, match="Duplicate source table name"):
+            sync.sync_tables(
+                {"host": "src", "user": "u", "password": "p"},
+                {"host": "tgt", "user": "u", "password": "p"},
+                tables=[name, name],
+            )
