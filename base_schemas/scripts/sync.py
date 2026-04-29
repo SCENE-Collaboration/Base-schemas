@@ -49,18 +49,33 @@ def sync_tables(
     ----------
     source_config, target_config : Mapping
         Connection info. Keys: `host`, `user`, `password`; optional: `port`, `use_tls`.
-    tables : Iterable[dj.Table]
-        Table classes to sync. Only their `full_table_name` is used — the classes
-        themselves can be bound to either server's connection (or to none, if
-        imported under USE_LAZY_SCHEMA).
-    restrictions : Mapping[dj.Table, str], optional
+    tables : Iterable[dj.Table | str | tuple[str, str]]
+        Each entry can be one of:
+          * a DataJoint table class — its `full_table_name` is used for both
+            source and target;
+          * a `full_table_name` string (e.g.
+            "`mice`.`#mouse_score_sheet__body_condition`") — used for both
+            source and target. Use this to override the class-derived name
+            when a server uses a non-default naming (e.g. legacy DataJoint
+            named tables with double underscores for class names containing
+            underscores);
+          * a `(source_name, target_name)` tuple — when the same logical
+            table has different physical names on the two servers (e.g.
+            legacy `__` on the source vs. DJ 2.2 `_` on the target).
+        Class instances can be bound to either server's connection (or to
+        none, if imported under USE_LAZY_SCHEMA).
+    restrictions : Mapping, optional
         Per-table DataJoint restriction applied to the source before fetching,
-        e.g. {Session: "doe >= '2026-01-01'"} for incremental syncs.
+        e.g. {Session: "doe >= '2026-01-01'"} for incremental syncs. Keys must
+        match the entry passed in `tables` — the class object, the same
+        `full_table_name` string, or the same `(src_name, tgt_name)` tuple.
 
     Returns
     -------
     dict[str, dict]
-        Maps `full_table_name` to {"fetched": int, "inserted": int}.
+        Maps source `full_table_name` to {"fetched": int, "inserted": int,
+        "target": str}. The "target" key holds the target full_table_name
+        (equal to source unless the entry was a (src, tgt) tuple).
     """
     _require_instance_api()
     logger = logger or logging.getLogger(__name__)
@@ -70,12 +85,20 @@ def sync_tables(
     tgt_instance = _build_instance(target_config)
 
     results = {}
-    for table_cls in tables:
-        full_name = table_cls.full_table_name
-        src_table = src_instance.FreeTable(full_name)
-        tgt_table = tgt_instance.FreeTable(full_name)
+    for entry in tables:
+        if isinstance(entry, tuple):
+            src_name, tgt_name = entry
+        elif isinstance(entry, str):
+            src_name = tgt_name = entry
+        else:
+            src_name = tgt_name = entry.full_table_name
+        display = src_name if src_name == tgt_name else f"{src_name} -> {tgt_name}"
+        logger.info("Syncing table %s", display)
 
-        restriction = restrictions.get(table_cls)
+        src_table = src_instance.FreeTable(src_name)
+        tgt_table = tgt_instance.FreeTable(tgt_name)
+
+        restriction = restrictions.get(entry)
         if restriction is not None:
             src_table = src_table & restriction
 
@@ -86,12 +109,12 @@ def sync_tables(
         inserted = after - before
 
         logger.info(
-            "Synced %s: fetched %d, inserted %d (%d already present)",
-            full_name,
+            "Synced %s: fetched %d, inserted %d (%d already present)\n",
+            display,
             len(rows),
             inserted,
             len(rows) - inserted,
         )
-        results[full_name] = {"fetched": len(rows), "inserted": inserted}
+        results[src_name] = {"fetched": len(rows), "inserted": inserted, "target": tgt_name}
 
     return results
