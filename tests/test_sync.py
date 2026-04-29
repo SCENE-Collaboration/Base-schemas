@@ -93,7 +93,11 @@ def test_sync_inserts_missing_rows(patch_instance_api):
             tables=[Mouse],
         )
 
-    assert results["`mice`.`mouse`"] == {"fetched": 2, "inserted": 1}
+    assert results["`mice`.`mouse`"] == {
+        "fetched": 2,
+        "inserted": 1,
+        "target": "`mice`.`mouse`",
+    }
     assert len(target_mouse) == 2
 
 
@@ -113,7 +117,11 @@ def test_sync_is_idempotent(patch_instance_api):
             tables=[Mouse],
         )
 
-    assert results["`mice`.`mouse`"] == {"fetched": 1, "inserted": 0}
+    assert results["`mice`.`mouse`"] == {
+        "fetched": 1,
+        "inserted": 0,
+        "target": "`mice`.`mouse`",
+    }
 
 
 def test_sync_applies_restriction(patch_instance_api):
@@ -188,3 +196,48 @@ def test_require_instance_api_raises_when_missing(monkeypatch):
         monkeypatch.delattr(sync.dj, "Instance")
     with pytest.raises(ImportError, match="datajoint>=2.2"):
         sync._require_instance_api()
+
+
+def test_sync_accepts_string_entry(patch_instance_api):
+    name = "`mice`.`#mouse_score_sheet__body_condition`"
+    source_table = FakeFreeTable(name, rows=[{"body_condition": "BC1", "define_score": "x"}])
+    target_table = FakeFreeTable(name)
+
+    source_instance = FakeInstance({name: source_table})
+    target_instance = FakeInstance({name: target_table})
+
+    with patch.object(sync, "_build_instance", side_effect=[source_instance, target_instance]):
+        results = sync.sync_tables(
+            {"host": "src", "user": "u", "password": "p"},
+            {"host": "tgt", "user": "u", "password": "p"},
+            tables=[name],
+            restrictions={name: "body_condition = 'BC1'"},
+        )
+
+    assert results[name] == {"fetched": 1, "inserted": 1, "target": name}
+    assert source_table._last_restriction == "body_condition = 'BC1'"
+    assert len(target_table) == 1
+
+
+def test_sync_accepts_src_tgt_tuple_entry(patch_instance_api):
+    src_name = "`mice`.`#mouse_score_sheet__body_condition`"
+    tgt_name = "`mice`.`#mouse_score_sheet_body_condition`"
+    entry = (src_name, tgt_name)
+    rows = [{"body_condition": "BC1", "define_score": "x"}]
+    source_table = FakeFreeTable(src_name, rows=rows)
+    target_table = FakeFreeTable(tgt_name)
+
+    source_instance = FakeInstance({src_name: source_table})
+    target_instance = FakeInstance({tgt_name: target_table})
+
+    with patch.object(sync, "_build_instance", side_effect=[source_instance, target_instance]):
+        results = sync.sync_tables(
+            {"host": "src", "user": "u", "password": "p"},
+            {"host": "tgt", "user": "u", "password": "p"},
+            tables=[entry],
+            restrictions={entry: "body_condition = 'BC1'"},
+        )
+
+    assert results[src_name] == {"fetched": 1, "inserted": 1, "target": tgt_name}
+    assert source_table._last_restriction == "body_condition = 'BC1'"
+    assert len(target_table) == 1
