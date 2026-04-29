@@ -11,6 +11,7 @@ jobs:
   test-base-helpers:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.8", "3.10", "3.12"]
 
@@ -30,4 +31,4 @@ jobs:
 
       - name: Run helper unit tests
         run: |
-          pytest -q tests/test_populate_base_helpers.py
+          pytest -q tests/test_populate_base_helpers.py tests/test_sync.py

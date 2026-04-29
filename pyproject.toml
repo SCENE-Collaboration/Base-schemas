@@ -9,7 +9,10 @@ description = "Mathis lab base DataJoint schemas"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    "datajoint>=0.13", # for dj.Schema() lazy style
+    # datajoint 2.2 dropped Python 3.8; pin to <2.2 there and require >=2.2 elsewhere.
+    # sync.py requires datajoint>=2.2 (dj.Instance); enforced at runtime on 3.8.
+    "datajoint>=0.13,<2.2; python_version < '3.9'",
+    "datajoint>=2.2; python_version >= '3.9'",
     "packaging", # required by datajoint > 1
 ]
 

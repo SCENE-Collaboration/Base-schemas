@@ -3,3 +3,4 @@ base_schemas.egg-info/
 dist/
 .venv
 .python-version
+.metadata_never_index
