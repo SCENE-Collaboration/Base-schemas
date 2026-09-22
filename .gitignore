@@ -1,6 +1,10 @@
 __pycache__/
+*.py[cod]
 base_schemas.egg-info/
 dist/
 .venv
 .python-version
 .metadata_never_index
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

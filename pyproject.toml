@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "base-schemas"
 version = "2.0.0"
-description = "Mathis lab base DataJoint schemas"
+description = "SCENE shared DataJoint base schemas (legacy mice/exp + emerging SCENE spine)"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
@@ -14,6 +14,13 @@ dependencies = [
     "datajoint>=0.13,<2.2; python_version < '3.9'",
     "datajoint>=2.2; python_version >= '3.9'",
     "packaging", # required by datajoint > 1
+]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=3.5",
+    "pytest>=7",
+    "ruff>=0.15",
 ]
 
 [tool.setuptools.packages.find]
@@ -25,3 +32,26 @@ filterwarnings = [
     "ignore:Positional inserts \\(tuples/lists\\) are deprecated and will be removed in a future version\\..*:DeprecationWarning",
     "ignore:Table class name `.*` contains underscores\\. CamelCase names without underscores are recommended\\.:UserWarning",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+src = ["base_schemas", "tests"]
+extend-exclude = [
+    # Legacy frozen modules — do not mass-lint/reformat in foundation PRs.
+    "base_schemas/schemas/mice.py",
+    "base_schemas/schemas/exp.py",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+    "W",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"base_schemas/scripts/*.py" = ["E501"]
+"tests/*.py" = ["E501"]
