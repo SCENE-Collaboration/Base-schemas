@@ -58,6 +58,7 @@ This workflow is useful when e.g. distributing package versions for use within a
 
 ``` python
 from base_schemas.schemas import mice, exp
+
 print(mice.Mouse())
 ```
 
