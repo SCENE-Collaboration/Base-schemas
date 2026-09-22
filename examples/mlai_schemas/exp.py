@@ -154,7 +154,7 @@ class Session(dj.Manual):
     @classmethod
     def get_sessions_for_pipeline(cls, pipeline_name):
         return cls & [
-            "task_name = '{}'".format(task) for task in Task.get_pipeline_task_names(pipeline_name)
+            f"task_name = '{task}'" for task in Task.get_pipeline_task_names(pipeline_name)
         ]
 
 

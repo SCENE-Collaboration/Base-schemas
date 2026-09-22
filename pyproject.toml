@@ -38,9 +38,8 @@ line-length = 100
 target-version = "py38"
 src = ["base_schemas", "tests"]
 extend-exclude = [
-    # Legacy frozen modules — do not mass-lint/reformat in foundation PRs.
-    "base_schemas/schemas/mice.py",
-    "base_schemas/schemas/exp.py",
+    # Frozen Mathis-lab example schemas — keep DJ definitions as-is.
+    "examples/mouselab_schemas",
 ]
 
 [tool.ruff.lint]
