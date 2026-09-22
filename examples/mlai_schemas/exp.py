@@ -1,12 +1,10 @@
+"""Mathis-lab experiment session tables (example)."""
+
 import os
 
 import datajoint as dj
 
-from base_schemas.schemas import mice
-
-"""
-    Minimal Schema version for experimental information
-"""
+from . import mice  # noqa: F401  # FK context: Session -> mice.Mouse
 
 if os.getenv("USE_LAZY_SCHEMA"):
     schema = dj.Schema()  # does not require a database connection

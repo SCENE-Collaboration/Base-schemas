@@ -1,11 +1,8 @@
-"""
-    Minimal Schema version for experimental information
-"""
+"""Mathis-lab mouse tables (example)."""
 
 import os
 
 import datajoint as dj
-
 
 if os.getenv("USE_LAZY_SCHEMA"):
     schema = dj.Schema()  # does not require a database connection
