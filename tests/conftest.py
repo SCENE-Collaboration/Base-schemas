@@ -1,3 +1,5 @@
+"""Shared pytest fixtures for base_schemas unit tests."""
+
 import os
 import sys
 import uuid
@@ -5,13 +7,6 @@ from pathlib import Path
 
 import datajoint as dj
 import pytest
-
-# Mathis-lab examples are reference-only (not an importable/tested API here).
-collect_ignore = [
-    "test_imports.py",
-    "test_populate_base_db.py",
-    "test_populate_base_helpers.py",
-]
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
