@@ -1,8 +1,12 @@
-### Mathis lab base tables for all datajoint pipelines ###
+# M-Lab example schemas
 
-The `base_schemas` folder is a `pip` installable package that contains all schemas (`mice` and `exp`) to share across different pipelines.
+**Not** part of the installable `base_schemas` API.
 
-Installation:
+```bash
+# from repo root
+export PYTHONPATH="${PWD}/examples${PYTHONPATH:+:$PYTHONPATH}"
 ```
-pip install .
+
+```python
+from mouselab_schemas import mice, exp
 ```
