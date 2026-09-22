@@ -1,1 +1,1 @@
-"""M-Lab example DataJoint schemas (example extensions of the base_schemas)."""
+"""Mathis-lab reference schemas (copy into a lab repo if needed)."""

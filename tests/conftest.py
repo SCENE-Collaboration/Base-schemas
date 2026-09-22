@@ -1,11 +1,17 @@
 import os
 import sys
 import uuid
-from importlib import import_module, reload
 from pathlib import Path
 
 import datajoint as dj
 import pytest
+
+# Mathis-lab examples are reference-only (not an importable/tested API here).
+collect_ignore = [
+    "test_imports.py",
+    "test_populate_base_db.py",
+    "test_populate_base_helpers.py",
+]
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -30,30 +36,5 @@ def dj_connection():
     if backend:
         dj.config["database.backend"] = backend
 
-    # Verify connection works
     connection = dj.conn()
-
     yield connection
-
-
-@pytest.fixture
-def base_schema_context(dj_connection):
-    """Import test-prefixed schemas and drop them after each test."""
-    mice_module = import_module("base_schemas.schemas.mice")
-    mice_module = reload(mice_module)
-
-    exp_module = import_module("base_schemas.schemas.exp")
-    exp_module = reload(exp_module)
-
-    yield {
-        "Mouse": mice_module.Mouse,
-        "Session": exp_module.Session,
-        "SessionScoreSheet": exp_module.SessionScoreSheet,
-        "MouseScoreSheet": mice_module.MouseScoreSheet,
-        "MouseScoreSheet_WaterRestriction": mice_module.MouseScoreSheet_WaterRestriction,
-        "schema_mouse": mice_module.schema,
-        "schema_exp": exp_module.schema,
-    }
-
-    exp_module.schema.drop(prompt=False)
-    mice_module.schema.drop(prompt=False)

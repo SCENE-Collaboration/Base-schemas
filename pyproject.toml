@@ -39,7 +39,7 @@ target-version = "py38"
 src = ["base_schemas", "tests"]
 extend-exclude = [
     # Frozen Mathis-lab example schemas — keep DJ definitions as-is.
-    "examples/mouselab_schemas",
+    "examples/mlai_schemas",
 ]
 
 [tool.ruff.lint]

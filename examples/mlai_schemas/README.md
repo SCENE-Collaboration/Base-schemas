@@ -1,12 +1,4 @@
-# M-Lab example schemas
+# Mathis-lab reference schemas
 
-**Not** part of the installable `base_schemas` API.
-
-```bash
-# from repo root
-export PYTHONPATH="${PWD}/examples${PYTHONPATH:+:$PYTHONPATH}"
-```
-
-```python
-from mouselab_schemas import mice, exp
-```
+Frozen `mice` / `exp` + `populate_base`. Reference only — copy into a lab repo
+if needed. Not installed or tested by Base-schemas.

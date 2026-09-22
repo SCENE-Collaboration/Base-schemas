@@ -56,11 +56,9 @@ This workflow is useful when e.g. distributing package versions for use within a
 
 ## Usage
 
-``` python
-from base_schemas.schemas import mice, exp
-
-print(mice.Mouse())
-```
+Mathis-lab `mice` / `exp` are a **reference copy** under
+[`examples/mlai_schemas`](examples/mlai_schemas/) (not installed, not
+imported here). Sync helpers: `base_schemas.scripts.sync`.
 
 ## Acknowledgments
 

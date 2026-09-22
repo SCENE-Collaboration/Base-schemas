@@ -9,6 +9,8 @@ on:
 
 jobs:
   erd-and-integration:
+    # Disabled: examples/mlai_schemas is reference-only (not CI-tested).
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
