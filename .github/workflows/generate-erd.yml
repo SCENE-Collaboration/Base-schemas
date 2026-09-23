@@ -32,7 +32,6 @@ jobs:
     env:
       USE_LAZY_SCHEMA: ${{ matrix.python-version == '3.8' && '1' || '' }}
       DJ_HOST: 127.0.0.1
-      DJ_PORT: 3306
       DJ_USER: root
       DJ_PASS: simple
       MPLCONFIGDIR: /tmp/matplotlib

@@ -8,3 +8,6 @@ dist/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.env
+.dbdata/
+datajoint.json

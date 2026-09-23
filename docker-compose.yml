@@ -1,0 +1,52 @@
+services:
+
+  db:
+    image: mysql:8.0
+    container_name: base_schemas_db
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    # HOST:CONTAINER — left side is the laptop port; right side is MySQL's default inside the container.
+    ports:
+      - "${MYSQL_PUBLISH_PORT:-3306}:3306"
+    env_file:
+      - .env
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ${DATABASE_MOUNT}/mysql:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  client:
+    image: base_schemas_app
+    container_name: base_schemas_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/base-schemas
+      - ${DATABASE_MOUNT}/shared:/shared
+    working_dir: /base-schemas
+    env_file:
+      - .env
+    environment:
+      - PYTHONWARNINGS=ignore:Table class name:UserWarning
+      - DJ_SCHEMA_PREFIX=${DJ_SCHEMA_PREFIX:-dev_}
+      # On the compose network, connect to service `db` (MySQL default port 3306).
+      - DJ_HOST=db
+      - DJ_USER=root
+      - DJ_PASS=${MYSQL_ROOT_PASSWORD}
+    stdin_open: true
+    tty: true
+    depends_on:
+      db:
+        condition: service_healthy
