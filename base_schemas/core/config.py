@@ -10,9 +10,9 @@ DJ_SCHEMA_PREFIX
     underscore (e.g. ``dev_`` → ``dev_experiment``).
 AUTO_ACTIVATE
     Opt-in eager bind. If unset/false (default), schemas stay unbound until
-    ``activate()`` / ``activate_all()`` — no DB required on import
-    (see SCENE-Collaboration/Base-schemas#8). If truthy, ``make_schema`` and
-    table modules that honor this setting bind immediately.
+    ``activate_schema`` / ``SCENE_REGISTRY.activate`` — no DB required on
+    import (see SCENE-Collaboration/Base-schemas#8). If truthy, ``make_schema``
+    and table modules that honor this setting bind immediately.
 """
 
 from __future__ import annotations
