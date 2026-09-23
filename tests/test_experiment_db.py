@@ -5,6 +5,8 @@ import os
 
 import pytest
 
+_TRUTHY = frozenset({"1", "true", "yes", "on"})
+
 pytestmark = [
     pytest.mark.db,
     pytest.mark.skipif(
@@ -12,8 +14,8 @@ pytestmark = [
         reason="requires DataJoint DB (set DJ_HOST)",
     ),
     pytest.mark.skipif(
-        bool(os.getenv("USE_LAZY_SCHEMA")),
-        reason="tables are unbound when USE_LAZY_SCHEMA is set",
+        (os.getenv("AUTO_ACTIVATE") or "").strip().lower() not in _TRUTHY,
+        reason="tables are unbound unless AUTO_ACTIVATE is set",
     ),
 ]
 

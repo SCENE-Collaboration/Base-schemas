@@ -8,11 +8,11 @@ Environment
 DJ_SCHEMA_PREFIX
     Prefix for every schema name. By convention include the trailing
     underscore (e.g. ``dev_`` → ``dev_experiment``).
-USE_LAZY_SCHEMA
-    If truthy, schemas stay unbound on import (no DB required). If unset/false
-    (default), callers that honor this flag bind eagerly — same meaning as in
-    existing table modules. A follow-up will centralize activation via a
-    registry and may invert the default toward lazy-by-default.
+AUTO_ACTIVATE
+    Opt-in eager bind. If unset/false (default), schemas stay unbound until
+    ``activate()`` / ``activate_all()`` — no DB required on import
+    (see SCENE-Collaboration/Base-schemas#8). If truthy, ``make_schema`` and
+    table modules that honor this setting bind immediately.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ class Settings:
     """Immutable resolved settings. ``prefix`` includes the trailing underscore."""
 
     prefix: str
-    lazy: bool
+    auto_activate: bool
 
     def db_name(self, suffix: str) -> str:
         """Full prefixed database name, e.g. ``'experiment'`` → ``'dev_experiment'``."""
@@ -51,4 +51,4 @@ def load_settings() -> Settings:
             f"Invalid DJ_SCHEMA_PREFIX {prefix!r}: must match [A-Za-z0-9_]* "
             "(typically ending in '_')"
         )
-    return Settings(prefix=prefix, lazy=_env_flag("USE_LAZY_SCHEMA"))
+    return Settings(prefix=prefix, auto_activate=_env_flag("AUTO_ACTIVATE"))
