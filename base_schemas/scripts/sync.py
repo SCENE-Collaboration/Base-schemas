@@ -6,7 +6,7 @@ Requires DataJoint >= 2.2 for `dj.Instance`.
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Mapping
+from collections.abc import Iterable, Mapping
 
 import datajoint as dj
 
