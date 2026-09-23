@@ -50,9 +50,11 @@ Schema names use `DJ_SCHEMA_PREFIX`.
 ## Tests
 
 ```bash
-make test          # unit tests (no database)
-make test-db       # MySQL via compose, then import + Lab/Session DB tests
+make test          # unit tests: pytest tests/ -m "not db"
+make test-db       # MySQL via compose, then pytest tests/ -m db
 ```
+
+Mark live-DB tests with `@pytest.mark.db` (registered in `pyproject.toml`).
 
 ## Acknowledgments
 

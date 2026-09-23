@@ -34,6 +34,6 @@ jobs:
           ruff check base_schemas tests
           ruff format --check base_schemas tests
 
-      - name: Run helper unit tests
+      - name: Run unit tests
         run: |
-          pytest -q tests/test_sync.py
+          pytest -q tests/ -m "not db"

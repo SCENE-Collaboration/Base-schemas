@@ -52,14 +52,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y graphviz
 
-      - name: Run import test
-        run: |
-          pytest -q tests/test_imports.py
-
       - name: Run DB tests
-        if: matrix.python-version != '3.8'
         run: |
-          pytest -q tests/test_experiment_db.py
+          pytest -q tests/ -m db
 
       - name: Generate ERD
         id: generate_erd

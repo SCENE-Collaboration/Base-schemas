@@ -5,10 +5,17 @@ import os
 
 import pytest
 
-pytestmark = pytest.mark.skipif(
-    bool(os.getenv("USE_LAZY_SCHEMA")),
-    reason="tables are unbound when USE_LAZY_SCHEMA is set",
-)
+pytestmark = [
+    pytest.mark.db,
+    pytest.mark.skipif(
+        not os.getenv("DJ_HOST"),
+        reason="requires DataJoint DB (set DJ_HOST)",
+    ),
+    pytest.mark.skipif(
+        bool(os.getenv("USE_LAZY_SCHEMA")),
+        reason="tables are unbound when USE_LAZY_SCHEMA is set",
+    ),
+]
 
 
 def test_lab_session_insert_roundtrip(dj_connection):

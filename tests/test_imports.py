@@ -1,4 +1,17 @@
+"""Import smoke tests (need DB config via dj_connection)."""
+
 import importlib
+import os
+
+import pytest
+
+pytestmark = [
+    pytest.mark.db,
+    pytest.mark.skipif(
+        not os.getenv("DJ_HOST"),
+        reason="requires DataJoint DB (set DJ_HOST)",
+    ),
+]
 
 
 def test_import_lab_module(dj_connection):

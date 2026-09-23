@@ -27,6 +27,9 @@ dev = [
 include = ["base_schemas*"]
 
 [tool.pytest.ini_options]
+markers = [
+    "db: needs a live DataJoint/MySQL connection (DJ_HOST, etc.)",
+]
 filterwarnings = [
     "ignore:fetch\\(\\) is deprecated in DataJoint 2\\.0.*:DeprecationWarning",
     "ignore:Positional inserts \\(tuples/lists\\) are deprecated and will be removed in a future version\\..*:DeprecationWarning",

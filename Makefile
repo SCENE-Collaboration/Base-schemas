@@ -54,9 +54,9 @@ client_bash:
 
 # Unit tests on the host (no database).
 test:
-	pytest -q tests/test_sync.py
+	pytest -q tests/ -m "not db"
 
 # DB smoke tests on the host against published MySQL (client → server).
 test-db: db_up
 	DJ_HOST=127.0.0.1 DJ_PORT=$(MYSQL_PUBLISH_PORT) DJ_USER=root DJ_PASS=$(MYSQL_ROOT_PASSWORD) \
-		pytest -q tests/test_imports.py tests/test_experiment_db.py
+		pytest -q tests/ -m db
