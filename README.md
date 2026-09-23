@@ -1,64 +1,58 @@
+# SCENE Base-schemas
 
-# Mathis lab base tables for all DataJoint pipelines
+Shared [DataJoint](https://datajoint.com/) table definitions for SCENE pipelines.
+Keeping them in one package keeps provenance and session structure aligned across labs.
 
-The `base_schemas` folder is a python package that contains the definition of main schemas (ensemble of tables) that are shared across distinct pipelines. The actual main schemas are `mice` and `exp`, and they are illustrated in the following diagram:
+Current package schemas (placeholders; definitions may change):
 
-![base_schemas_ERD](./base_schemas_erd.png)
+- `base_schemas.schemas.experiment.lab` — `Lab`
+- `base_schemas.schemas.experiment.session` — `Session`
 
-Main schemas definitions should be the same for all pipelines, so the organization via separate package helps to isolate the code during development and deployment.
+Also included: `base_schemas.scripts.sync` for copying table rows between servers.
 
 ## Installation
 
-### From source code
+```bash
+# development
+pip install -e ".[dev]"
 
-For the development version, clone the repository, and run
-
-```
-# for development
-pip install -e .
-
-# for usage
+# usage
 pip install .
 ```
 
-Alternatively, the package can be directly installed using one of the following commands (`main` can be replaced by a commit hash or branch):
+From GitHub (`main` can be a commit hash or branch):
 
-```
+```bash
 pip install "git+ssh://git@github.com/SCENE-Collaboration/Base-schemas.git@main"
 pip install "git+https://github.com/SCENE-Collaboration/Base-schemas.git@main"
 ```
 
-### Building a distribution
+Build a wheel:
 
-To build an installable package (source release or wheel), run:
-
-```
+```bash
 pip install build
 python -m build .
+pip install dist/base_schemas-*.whl
 ```
 
-which will create the release files in the `dist/` subfolder.
-For example, for version "1.1.0", it will create:
+## Quickstart (Docker)
 
-```
-dist
-dist/base_schemas-1.1.0.tar.gz
-dist/base_schemas-1.1.0-py3-none-any.whl
-```
-
-The wheel can be directly installed with pip:
-
-```
-pip install dist/base_schemas-1.1.0-py3-none-any.whl
+```bash
+make init          # once: copy .env.example → .env, then edit as needed
+make build_all
+make up_all
+make client_bash
 ```
 
-This workflow is useful when e.g. distributing package versions for use within a Docker container.
+Host port for MySQL is `MYSQL_PUBLISH_PORT` in `.env` (default `3306`).
+Schema names use `DJ_SCHEMA_PREFIX`.
 
-## Usage
+## Tests
 
-Mathis-lab `mice` / `exp` are a **reference copy** under
-[`examples/mlai_schemas`](examples/mlai_schemas/) (not installed, not
-imported here). Sync helpers: `base_schemas.scripts.sync`.
+```bash
+make test          # unit tests (no database)
+make test-db       # MySQL via compose, then import + Lab/Session DB tests
+```
 
 ## Acknowledgments
 
