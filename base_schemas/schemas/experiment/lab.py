@@ -5,13 +5,7 @@ Placeholder — table definitions are subject to change.
 
 import datajoint as dj
 
-from base_schemas.core import load_settings
-
-_settings = load_settings()
-if _settings.auto_activate:
-    schema = dj.Schema(_settings.db_name("experiment"), locals(), create_tables=True)
-else:
-    schema = dj.Schema()  # unbound until activate / AUTO_ACTIVATE
+from base_schemas.schemas.experiment._schema import schema
 
 
 @schema
