@@ -50,9 +50,9 @@ test:
 
 # DB smoke tests on the host against published MySQL (client → server).
 # .env is loaded by the shell (not by make), so quoted values may contain '#' or '$'.
-# MYSQL_PUBLISH_PORT defaults to MySQL's 3306.
+# MYSQL_PUBLISH_PORT defaults to MySQL's 3306; SCENE_DEPLOYMENT_ID to test-local.
 test-db: db_up
 	set -a && . ./.env && set +a && \
 	DJ_HOST=127.0.0.1 DJ_PORT=$${MYSQL_PUBLISH_PORT:-3306} DJ_USER=root DJ_PASS="$$MYSQL_ROOT_PASSWORD" \
-	AUTO_ACTIVATE=1 \
+	AUTO_ACTIVATE=1 SCENE_DEPLOYMENT_ID=$${SCENE_DEPLOYMENT_ID:-test-local} \
 		pytest -q tests/ -m db

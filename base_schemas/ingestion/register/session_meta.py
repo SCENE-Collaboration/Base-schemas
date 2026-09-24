@@ -7,6 +7,7 @@ from typing import Any
 
 from base_schemas.core.hash import content_hash
 from base_schemas.core.types import DjKey
+from base_schemas.schemas.experiment.deployment import Deployment
 from base_schemas.schemas.experiment.session import Session, SessionRowMeta
 
 EXPERIMENT_WRITER_VERSION = "0.0.1"
@@ -24,12 +25,14 @@ def upsert_session_row_meta(
     session_key: DjKey[Session],
     session: dict[str, Any],
     *,
+    deployment_key: DjKey[Deployment],
     writer_version: str | None = None,
 ) -> None:
     """Insert or replace ``SessionRowMeta`` for a session."""
     SessionRowMeta.insert1(
         {
             **session_key,
+            **deployment_key,
             "ingestion_version": writer_version or EXPERIMENT_WRITER_VERSION,
             "content_hash": content_hash(session_etag_payload(session)),
             "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
