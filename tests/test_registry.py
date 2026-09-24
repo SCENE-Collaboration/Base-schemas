@@ -50,29 +50,49 @@ def test_make_schema_rejects_empty_suffix(registry):
         registry.make_schema("")
 
 
+def test_make_schema_reuses_same_suffix(monkeypatch, registry):
+    monkeypatch.delenv("AUTO_ACTIVATE", raising=False)
+    monkeypatch.setattr(registry_mod.dj, "Schema", FakeSchema)
+
+    lab = object()
+    first = registry.make_schema("experiment", context={"Lab": lab}, create_tables=False)
+    second = registry.make_schema("experiment", context={"Session": object})
+    assert second is first
+    assert list(registry.schemas) == ["experiment"]
+    assert registry.get("experiment") is first
+    assert registry._entries["experiment"].context == {"Lab": lab}
+    assert registry._entries["experiment"].create_tables is False
+
+
+def test_registry_inspection(monkeypatch, registry):
+    monkeypatch.delenv("AUTO_ACTIVATE", raising=False)
+    monkeypatch.setattr(registry_mod.dj, "Schema", FakeSchema)
+
+    schema = registry.make_schema("experiment")
+    assert "experiment" in registry.schemas
+    assert "missing" not in registry.schemas
+    assert registry.get("missing") is None
+    assert registry.schemas == {"experiment": schema}
+    # Snapshot: mutating the returned dict does not alter the registry.
+    registry.schemas["experiment"] = FakeSchema()
+    assert registry.get("experiment") is schema
+
+
 def test_activate_uses_registered_suffix_and_context(monkeypatch, registry):
     monkeypatch.setenv("DJ_SCHEMA_PREFIX", "dev_")
     monkeypatch.delenv("AUTO_ACTIVATE", raising=False)
     monkeypatch.setattr(registry_mod.dj, "Schema", FakeSchema)
 
     schema = registry.make_schema("experiment", context={"Lab": object}, create_tables=False)
-    registry.activate(schema)
+    registry.activate("experiment")
     assert schema.database == "dev_experiment"
     assert "Lab" in schema.kwargs["add_objects"]
     assert schema.kwargs["create_tables"] is False
 
 
-def test_activate_requires_suffix_when_unregistered(registry):
-    with pytest.raises(ValueError, match="suffix is required"):
-        registry.activate(FakeSchema())
-
-
-def test_activate_explicit_suffix_for_unregistered(monkeypatch, registry):
-    monkeypatch.setenv("DJ_SCHEMA_PREFIX", "dev_")
-    schema = FakeSchema()
-    registry.activate(schema, "experiment", create_tables=False)
-    assert schema.database == "dev_experiment"
-    assert schema.kwargs["create_tables"] is False
+def test_activate_unknown_suffix_raises(registry):
+    with pytest.raises(KeyError, match="unknown schema"):
+        registry.activate("experiment")
 
 
 def test_activate_schema_binds_any_schema(monkeypatch):
