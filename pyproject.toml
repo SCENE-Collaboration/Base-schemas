@@ -14,6 +14,7 @@ dependencies = [
     "datajoint>=0.13,<2.2; python_version < '3.9'",
     "datajoint>=2.2; python_version >= '3.9'",
     "packaging", # required by datajoint > 1
+    "typing_extensions>=4.6; python_version < '3.12'",
 ]
 
 [project.optional-dependencies]
