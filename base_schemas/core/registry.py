@@ -152,7 +152,6 @@ class SchemaRegistry:
     ) -> dj.Schema:
         """Bind a registered schema by suffix using ``activate_schema``.
 
-
         Args:
             suffix: Logical name without prefix (e.g. ``"experiment"``).
             context: Optional FK resolution mapping; defaults to the mapping
