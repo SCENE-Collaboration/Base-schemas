@@ -10,6 +10,35 @@ Current package schemas (placeholders; definitions may change):
 
 Also included: `base_schemas.scripts.sync` for copying table rows between servers.
 
+## Schema activation
+
+Schemas stay unbound by default (no DB needed on import). Set
+``AUTO_ACTIVATE=1`` to bind eagerly, or activate explicitly:
+
+```python
+from base_schemas.core import SCENE_REGISTRY, activate_schema, load_settings
+
+schema = SCENE_REGISTRY.make_schema("experiment")  # unbound unless AUTO_ACTIVATE
+# @schema class Lab ...
+SCENE_REGISTRY.activate("experiment")  # uses context stored at make_schema
+SCENE_REGISTRY.activate_all()
+
+# Or bind any dj.Schema without the registry:
+activate_schema(schema, "experiment")
+
+# Repeated registration returns the same instance
+SCENE_REGISTRY.make_schema("experiment") is schema
+
+# Accessing the registry content
+"experiment" in SCENE_REGISTRY.schemas  # dict[str, dj.Schema]
+SCENE_REGISTRY.get("experiment") is schema
+```
+
+| Variable | Meaning |
+|----------|---------|
+| `DJ_SCHEMA_PREFIX` | Prefix for DB names (include trailing `_`) |
+| `AUTO_ACTIVATE` | If truthy, `make_schema` / Lab / Session bind on import |
+
 ## Installation
 
 ```bash

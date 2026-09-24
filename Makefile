@@ -59,4 +59,5 @@ test:
 # DB smoke tests on the host against published MySQL (client → server).
 test-db: db_up
 	DJ_HOST=127.0.0.1 DJ_PORT=$(MYSQL_PUBLISH_PORT) DJ_USER=root DJ_PASS=$(MYSQL_ROOT_PASSWORD) \
+	AUTO_ACTIVATE=1 \
 		pytest -q tests/ -m db
