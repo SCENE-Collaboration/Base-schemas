@@ -40,6 +40,7 @@ def test_lab_session_insert_roundtrip(dj_connection):
         {
             **lab_key,
             "session_id": "s1",
+            "session_name": "test session",
             "session_date": dt.date(2026, 1, 15),
         },
         skip_duplicates=True,

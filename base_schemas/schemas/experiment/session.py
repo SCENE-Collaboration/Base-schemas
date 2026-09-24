@@ -15,7 +15,8 @@ class Session(dj.Manual):
 
     definition = """
     -> Lab
-    session_id: varchar(64)
+    session_id: varchar(64)  # stable token; never renamed
     ---
+    session_name: varchar(128)  # user-facing label
     session_date: date
     """
