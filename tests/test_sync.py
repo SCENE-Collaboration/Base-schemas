@@ -7,7 +7,6 @@ and the sync loop logic without needing two live MySQL servers.
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from base_schemas.scripts import sync
 
 
@@ -126,7 +125,9 @@ def test_sync_is_idempotent(patch_instance_api):
 
 def test_sync_applies_restriction(patch_instance_api):
     Session = _fake_table_class("`exp`.`session`")
-    source_session = FakeFreeTable("`exp`.`session`", rows=[{"mouse_name": "A", "doe": "2026-01-01"}])
+    source_session = FakeFreeTable(
+        "`exp`.`session`", rows=[{"mouse_name": "A", "doe": "2026-01-01"}]
+    )
     target_session = FakeFreeTable("`exp`.`session`")
 
     source_instance = FakeInstance({"`exp`.`session`": source_session})
@@ -153,14 +154,18 @@ def test_sync_processes_tables_in_order(patch_instance_api):
             calls.append(("fetch", self.full_table_name))
             return super().fetch(as_dict=as_dict)
 
-    source_instance = FakeInstance({
-        "`mice`.`mouse`": OrderTrackingTable("`mice`.`mouse`"),
-        "`exp`.`session`": OrderTrackingTable("`exp`.`session`"),
-    })
-    target_instance = FakeInstance({
-        "`mice`.`mouse`": FakeFreeTable("`mice`.`mouse`"),
-        "`exp`.`session`": FakeFreeTable("`exp`.`session`"),
-    })
+    source_instance = FakeInstance(
+        {
+            "`mice`.`mouse`": OrderTrackingTable("`mice`.`mouse`"),
+            "`exp`.`session`": OrderTrackingTable("`exp`.`session`"),
+        }
+    )
+    target_instance = FakeInstance(
+        {
+            "`mice`.`mouse`": FakeFreeTable("`mice`.`mouse`"),
+            "`exp`.`session`": FakeFreeTable("`exp`.`session`"),
+        }
+    )
 
     with patch.object(sync, "_build_instance", side_effect=[source_instance, target_instance]):
         sync.sync_tables(
@@ -180,13 +185,15 @@ def test_build_instance_forwards_optional_keys():
         return MagicMock()
 
     with patch.object(sync.dj, "Instance", side_effect=fake_ctor, create=True):
-        sync._build_instance({
-            "host": "h",
-            "user": "u",
-            "password": "p",
-            "port": 3307,
-            "use_tls": False,
-        })
+        sync._build_instance(
+            {
+                "host": "h",
+                "user": "u",
+                "password": "p",
+                "port": 3307,
+                "use_tls": False,
+            }
+        )
 
     assert captured == {"host": "h", "user": "u", "password": "p", "port": 3307, "use_tls": False}
 

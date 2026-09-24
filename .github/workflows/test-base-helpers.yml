@@ -27,8 +27,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e . pytest numpy
+          python -m pip install -e ".[dev]"
 
-      - name: Run helper unit tests
+      - name: Ruff
         run: |
-          pytest -q tests/test_populate_base_helpers.py tests/test_sync.py
+          ruff check base_schemas tests
+          ruff format --check base_schemas tests
+
+      - name: Run unit tests
+        run: |
+          pytest -q tests/ -m "not db"

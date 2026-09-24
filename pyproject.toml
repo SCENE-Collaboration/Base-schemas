@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "base-schemas"
 version = "2.0.0"
-description = "Mathis lab base DataJoint schemas"
+description = "SCENE shared DataJoint base schemas (legacy mice/exp + emerging SCENE spine)"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
@@ -16,12 +16,44 @@ dependencies = [
     "packaging", # required by datajoint > 1
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=3.5",
+    "pytest>=7",
+    "ruff>=0.15",
+]
+
 [tool.setuptools.packages.find]
 include = ["base_schemas*"]
 
 [tool.pytest.ini_options]
+markers = [
+    "db: needs a live DataJoint/MySQL connection (DJ_HOST, etc.)",
+]
 filterwarnings = [
     "ignore:fetch\\(\\) is deprecated in DataJoint 2\\.0.*:DeprecationWarning",
     "ignore:Positional inserts \\(tuples/lists\\) are deprecated and will be removed in a future version\\..*:DeprecationWarning",
     "ignore:Table class name `.*` contains underscores\\. CamelCase names without underscores are recommended\\.:UserWarning",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+src = ["base_schemas", "tests"]
+extend-exclude = [
+    # Frozen Mathis-lab example schemas — keep DJ definitions as-is.
+    "examples/mlai_schemas",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+    "W",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"base_schemas/scripts/*.py" = ["E501"]
+"tests/*.py" = ["E501"]

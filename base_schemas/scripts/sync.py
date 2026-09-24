@@ -14,8 +14,7 @@ import datajoint as dj
 def _require_instance_api():
     if not hasattr(dj, "Instance"):
         raise ImportError(
-            "base_schemas.scripts.sync requires datajoint>=2.2 "
-            "(dj.Instance was introduced in 2.2)"
+            "base_schemas.scripts.sync requires datajoint>=2.2 (dj.Instance was introduced in 2.2)"
         )
 
 
