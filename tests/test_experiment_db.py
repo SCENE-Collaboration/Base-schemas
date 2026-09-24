@@ -53,9 +53,9 @@ def test_lab_session_insert_roundtrip(dj_connection):
 
 
 def test_register_session_mints_id_and_stores_name(dj_connection):
-    from base_schemas.ingestion import register_session
+    from base_schemas.ingestion import EXPERIMENT_WRITER_VERSION, register_session
     from base_schemas.schemas.experiment.lab import Lab
-    from base_schemas.schemas.experiment.session import Session
+    from base_schemas.schemas.experiment.session import Session, SessionRowMeta
 
     session_date = dt.date(2026, 5, 1)
     key = register_session(
@@ -69,6 +69,9 @@ def test_register_session_mints_id_and_stores_name(dj_connection):
     row = (Session & key).fetch1()
     assert row["session_name"] == "Morning run"
     assert row["session_date"] == session_date
+    meta = (SessionRowMeta & key).fetch1()
+    assert meta["ingestion_version"] == EXPERIMENT_WRITER_VERSION
+    assert len(meta["content_hash"]) == 64
 
 
 def test_ensure_schema_version_idempotent_then_assert(dj_connection):

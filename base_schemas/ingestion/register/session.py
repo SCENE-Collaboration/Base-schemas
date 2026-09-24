@@ -6,6 +6,7 @@ import uuid
 from datetime import date
 
 from base_schemas.core.types import DjKey, DjRow
+from base_schemas.ingestion.register.session_meta import upsert_session_row_meta
 from base_schemas.schemas.experiment.lab import Lab
 from base_schemas.schemas.experiment.session import Session
 
@@ -21,7 +22,7 @@ def register_session(
     *,
     lab: DjRow[Lab],
 ) -> DjKey[Session]:
-    """Insert ``Lab`` (if needed) + ``Session`` with generated ``session_id``.
+    """Insert ``Lab`` (if needed) + ``Session`` + ``SessionRowMeta``.
 
     Args:
         session_name: User-facing session label (non-empty).
@@ -46,12 +47,13 @@ def register_session(
 
     # Create session record
     session_id = new_session_id()
-    Session.insert1(
-        {
-            **lab_key,
-            "session_id": session_id,
-            "session_name": name,
-            "session_date": session_date,
-        }
-    )
-    return {**lab_key, "session_id": session_id}
+    session = {
+        **lab_key,
+        "session_id": session_id,
+        "session_name": name,
+        "session_date": session_date,
+    }
+    Session.insert1(session)
+    session_key: DjKey[Session] = {**lab_key, "session_id": session_id}
+    upsert_session_row_meta(session_key, session)
+    return session_key

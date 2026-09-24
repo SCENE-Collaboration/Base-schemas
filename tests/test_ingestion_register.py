@@ -31,7 +31,9 @@ def test_register_session_inserts_lab_and_session_with_minted_id():
     lab_table.primary_key = ["lab_id"]
     with patch.object(session_reg, "Lab", lab_table), patch.object(
         session_reg.Session, "insert1"
-    ) as sess_ins, patch.object(session_reg, "new_session_id", return_value="abc" * 10 + "ab"):
+    ) as sess_ins, patch.object(
+        session_reg, "new_session_id", return_value="abc" * 10 + "ab"
+    ), patch.object(session_reg, "upsert_session_row_meta") as upsert_meta:
         key = session_reg.register_session(
             " morning run ",
             date(2026, 5, 1),
@@ -45,3 +47,4 @@ def test_register_session_inserts_lab_and_session_with_minted_id():
     assert row["session_name"] == "morning run"
     assert row["session_date"] == date(2026, 5, 1)
     assert row["session_id"] == key["session_id"]
+    upsert_meta.assert_called_once_with(key, row)
