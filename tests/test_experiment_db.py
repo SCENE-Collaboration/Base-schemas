@@ -52,6 +52,25 @@ def test_lab_session_insert_roundtrip(dj_connection):
     )
 
 
+def test_register_session_mints_id_and_stores_name(dj_connection):
+    from base_schemas.ingestion import register_session
+    from base_schemas.schemas.experiment.lab import Lab
+    from base_schemas.schemas.experiment.session import Session
+
+    session_date = dt.date(2026, 5, 1)
+    key = register_session(
+        "Morning run",
+        session_date,
+        lab={"lab_id": "reglab", "lab_name": "Register Lab", "institution": "Test U"},
+    )
+    assert key["lab_id"] == "reglab"
+    assert len(key["session_id"]) == 32
+    assert (Lab & {"lab_id": "reglab"}).fetch1("lab_name") == "Register Lab"
+    row = (Session & key).fetch1()
+    assert row["session_name"] == "Morning run"
+    assert row["session_date"] == session_date
+
+
 def test_ensure_schema_version_idempotent_then_assert(dj_connection):
     from base_schemas.core.versioning import assert_schema_compatible, ensure_schema_version
     from base_schemas.schemas.experiment._schema import (
