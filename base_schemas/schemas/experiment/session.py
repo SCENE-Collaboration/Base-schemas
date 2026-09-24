@@ -1,7 +1,10 @@
 """SCENE-shared session spine.
 
-Placeholder — table definitions are subject to change.
+Placeholder scientific fields — definitions are subject to change.
+``SessionRowMeta`` holds row-level write provenance (not scientific identity).
 """
+
+from __future__ import annotations
 
 import datajoint as dj
 
@@ -19,4 +22,26 @@ class Session(dj.Manual):
     ---
     session_name: varchar(128)  # user-facing label
     session_date: date
+    """
+
+
+@schema
+class SessionRowMeta(dj.Manual):
+    """Row-level write provenance for ``Session`` (not scientific identity).
+
+    Primary key is ``-> Session`` (``lab_id``, ``session_id``). Intended to be
+    written by a supported registration path (not hand-edited). Use for sync
+    etags and writer-version provenance — not schema DDL (see ``SchemaVersion``).
+
+    ``ingestion_version`` stores ``EXPERIMENT_WRITER_VERSION`` at write time.
+    ``content_hash`` is a SHA-256 etag of the caller-chosen session payload
+    (see ``base_schemas.core.content_hash``).
+    """
+
+    definition = """
+    -> Session
+    ---
+    ingestion_version: varchar(32)  # EXPERIMENT_WRITER_VERSION at write time
+    content_hash='': char(64)       # sha256 etag of session payload; empty if unset
+    updated_at: datetime
     """
