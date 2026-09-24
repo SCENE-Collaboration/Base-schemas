@@ -74,6 +74,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection):
     meta = (SessionRowMeta & key).fetch1()
     assert meta["ingestion_version"] == EXPERIMENT_WRITER_VERSION
     assert meta["content_hash"] == content_hash(session_etag_payload(row))
+    assert meta["deployment_id"] == os.environ["SCENE_DEPLOYMENT_ID"]
 
 
 def test_ensure_schema_version_idempotent_then_assert(dj_connection):

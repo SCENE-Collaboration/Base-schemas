@@ -17,6 +17,8 @@ endif
 
 # Host port published to MySQL (MySQL's default listen port inside the container is 3306).
 MYSQL_PUBLISH_PORT ?= 3306
+# Default deployment stamp for DB smoke tests (override in .env).
+SCENE_DEPLOYMENT_ID ?= test-local
 
 .PHONY: init build_all db_up up_all down_all client_build client_up client_stop \
 	client_down client_bash test test-db
@@ -59,5 +61,5 @@ test:
 # DB smoke tests on the host against published MySQL (client → server).
 test-db: db_up
 	DJ_HOST=127.0.0.1 DJ_PORT=$(MYSQL_PUBLISH_PORT) DJ_USER=root DJ_PASS=$(MYSQL_ROOT_PASSWORD) \
-	AUTO_ACTIVATE=1 \
+	AUTO_ACTIVATE=1 SCENE_DEPLOYMENT_ID=$(SCENE_DEPLOYMENT_ID) \
 		pytest -q tests/ -m db

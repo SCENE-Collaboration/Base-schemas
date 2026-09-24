@@ -13,6 +13,11 @@ AUTO_ACTIVATE
     ``activate_schema`` / ``SCENE_REGISTRY.activate`` — no DB required on
     import (see SCENE-Collaboration/Base-schemas#8). If truthy, ``make_schema``
     and table modules that honor this setting bind immediately.
+SCENE_DEPLOYMENT_ID
+    Opaque stable id for this DB/instance/dataset. Default for
+    ``register_session`` when ``deployment`` is omitted.
+SCENE_DEPLOYMENT_LABEL
+    Optional human label stored on ``Deployment`` when using the env default.
 """
 
 from __future__ import annotations
@@ -35,6 +40,8 @@ class Settings:
 
     prefix: str
     auto_activate: bool
+    deployment_id: str | None
+    deployment_label: str
 
     def db_name(self, suffix: str) -> str:
         """Full prefixed database name, e.g. ``'experiment'`` → ``'dev_experiment'``."""
@@ -51,4 +58,11 @@ def load_settings() -> Settings:
             f"Invalid DJ_SCHEMA_PREFIX {prefix!r}: must match [A-Za-z0-9_]* "
             "(typically ending in '_')"
         )
-    return Settings(prefix=prefix, auto_activate=_env_flag("AUTO_ACTIVATE"))
+    deployment_id = (os.environ.get("SCENE_DEPLOYMENT_ID") or "").strip() or None
+    deployment_label = (os.environ.get("SCENE_DEPLOYMENT_LABEL") or "").strip()
+    return Settings(
+        prefix=prefix,
+        auto_activate=_env_flag("AUTO_ACTIVATE"),
+        deployment_id=deployment_id,
+        deployment_label=deployment_label,
+    )
