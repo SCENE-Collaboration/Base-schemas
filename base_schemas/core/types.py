@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, TypeVar
+from typing import Any, TypeVar
+
+try:
+    from typing import Annotated
+except ImportError:  # Python 3.8
+    from typing_extensions import Annotated
 
 try:
     from typing import TypeAliasType
