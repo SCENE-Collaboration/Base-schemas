@@ -8,7 +8,23 @@ Current package schemas (placeholders; definitions may change):
 - `base_schemas.schemas.experiment.lab` — `Lab`
 - `base_schemas.schemas.experiment.session` — `Session`
 
-Also included: `base_schemas.scripts.sync` for copying table rows between servers.
+Also included:
+
+- `base_schemas.scripts.sync` — copy table rows between servers
+- `base_schemas.ingestion` — supported write path (`register_session`, …);
+
+### Register a session
+
+```python
+from datetime import date
+from base_schemas.ingestion import register_session
+
+key = register_session(
+    session_name="mousear-session-015",  # human-friendly identifier
+    date=date(2026, 5, 1),
+    lab={"lab_id": "mlai", "lab_name": "Mathis Lab"},
+)
+```
 
 ## Schema activation
 
