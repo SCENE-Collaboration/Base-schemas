@@ -1,16 +1,20 @@
-"""Register a Session (+ Lab + Deployment)."""
+"""Register a Session from existing keys (+ Deployment + SessionRowMeta)."""
 
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import date
 
 from base_schemas.core.config import load_settings
 from base_schemas.core.types import DjKey, DjRow
 from base_schemas.ingestion.register.session_meta import upsert_session_row_meta
-from base_schemas.schemas.experiment.lab import Lab
-from base_schemas.schemas.experiment.session import Session
+from base_schemas.ingestion.register.subject import register_subject
 from base_schemas.schemas.provenance.deployment import Deployment
+from base_schemas.schemas.scene.lab import Lab
+from base_schemas.schemas.scene.session import Experimenter, Session
+from base_schemas.schemas.scene.subject import Subject
+from base_schemas.schemas.scene.task import Task
 
 
 def new_session_id() -> str:
@@ -18,12 +22,8 @@ def new_session_id() -> str:
     return uuid.uuid4().hex
 
 
-def _resolve_deployment(
-    deployment: DjRow[Deployment] | None,
-) -> DjRow[Deployment]:
-    """Use ``deployment`` if given; otherwise build a row from Settings."""
-    if deployment is not None:
-        return deployment
+def _build_deployment_row_from_settings() -> DjRow[Deployment]:
+    """Build a deployment row from Settings."""
     settings = load_settings()
     if not settings.deployment_id:
         raise ValueError("deployment is required: pass deployment={...} or set SCENE_DEPLOYMENT_ID")
@@ -33,50 +33,152 @@ def _resolve_deployment(
     }
 
 
+def _insert_session_bundle(
+    *,
+    lab: DjKey[Lab],
+    name: str,
+    session_date: date,
+    subjects: Sequence[DjKey[Subject]],
+    task: DjKey[Task] | None,
+    experimenter: DjKey[Experimenter] | None,
+    deployment_row: DjRow[Deployment],
+    skip_duplicates: bool,
+) -> DjKey[Session]:
+    """Write Deployment + Session + Subject links + row meta (caller owns txn)."""
+    deployment_key: DjKey[Deployment] = {k: deployment_row[k] for k in Deployment.primary_key}
+    subject_ids = [s["subject_id"] for s in subjects]
+    session_id = new_session_id()
+    session = {
+        **lab,
+        "session_id": session_id,
+        "session_name": name,
+        "session_date": session_date,
+        **(task or {}),
+        **(experimenter or {}),
+    }
+    session_key: DjKey[Session] = {**lab, "session_id": session_id}
+
+    Deployment.insert1(deployment_row, skip_duplicates=skip_duplicates)
+    Session.insert1(session, skip_duplicates=skip_duplicates)
+    if subject_ids:
+        Session.Subject.insert(
+            [{**session_key, "subject_id": sid} for sid in subject_ids],
+            skip_duplicates=skip_duplicates,
+        )
+    upsert_session_row_meta(
+        session_key,
+        session,
+        deployment_key=deployment_key,
+        subject_ids=subject_ids,
+    )
+    return session_key
+
+
 def register_session(
     session_name: str,
     session_date: date,
     *,
-    lab: DjRow[Lab],
+    lab: DjKey[Lab],
+    subjects: Sequence[DjKey[Subject]] = (),
+    task: DjKey[Task] | None = None,
+    experimenter: DjKey[Experimenter] | None = None,
     deployment: DjRow[Deployment] | None = None,
+    skip_duplicates: bool = True,
 ) -> DjKey[Session]:
-    """Insert ``Lab`` / ``Deployment`` (if needed) + ``Session`` + ``SessionRowMeta``.
+    """Insert a session (and link optional subjects) with deployment provenance.
+
+    Catalog keys (``lab``, ``subjects``, ``task``, ``experimenter``) must already
+    exist; this helper does not create them. ``session_id`` is minted. Writes run
+    in one transaction.
 
     Args:
-        session_name: User-facing session label (non-empty).
+        session_name: User-facing session label (non-empty after strip).
         session_date: Calendar date of the session.
-        lab: Lab row dict including all ``Lab`` primary-key fields (and any
-            attributes to set on create). Existing labs are left in place
-            (``insert1(..., skip_duplicates=True)``).
-        deployment: Optional Deployment row dict. If omitted, uses
-            ``SCENE_DEPLOYMENT_ID`` / ``SCENE_DEPLOYMENT_LABEL`` from settings.
+        lab: Existing lab primary key, e.g. ``{"lab_id": "mlai"}``.
+        subjects: Existing subject keys (may be empty).
+        task: Optional existing task key.
+        experimenter: Optional existing experimenter key.
+        deployment: Optional deployment row to insert. If omitted, built from
+            ``SCENE_DEPLOYMENT_ID`` / ``SCENE_DEPLOYMENT_LABEL``.
+        skip_duplicates: Forwarded to DataJoint inserts.
 
     Returns:
-        Session primary key (Lab primary key fields plus ``session_id``).
+        Session primary key ``{lab_id, session_id}``.
 
     Raises:
-        ValueError: If ``session_name`` is empty, or deployment is unset and
-            ``SCENE_DEPLOYMENT_ID`` is missing.
+        ValueError: If ``session_name`` is empty, or ``deployment`` is omitted
+            and ``SCENE_DEPLOYMENT_ID`` is unset.
     """
     name = session_name.strip()
     if not name:
         raise ValueError("session_name must be a non-empty string")
 
-    Lab.insert1(lab, skip_duplicates=True)
-    lab_key: DjKey[Lab] = {k: lab[k] for k in Lab.primary_key}
+    deployment_row = deployment if deployment is not None else _build_deployment_row_from_settings()
 
-    deployment_row = _resolve_deployment(deployment)
-    Deployment.insert1(deployment_row, skip_duplicates=True)
-    deployment_key: DjKey[Deployment] = {k: deployment_row[k] for k in Deployment.primary_key}
+    with Session.connection.transaction:
+        return _insert_session_bundle(
+            lab=lab,
+            name=name,
+            session_date=session_date,
+            subjects=subjects,
+            task=task,
+            experimenter=experimenter,
+            deployment_row=deployment_row,
+            skip_duplicates=skip_duplicates,
+        )
 
-    session_id = new_session_id()
-    session = {
-        **lab_key,
-        "session_id": session_id,
-        "session_name": name,
-        "session_date": session_date,
-    }
-    Session.insert1(session)
-    session_key: DjKey[Session] = {**lab_key, "session_id": session_id}
-    upsert_session_row_meta(session_key, session, deployment_key=deployment_key)
-    return session_key
+
+def register_session_with_new_subjects(
+    session_name: str,
+    session_date: date,
+    *,
+    lab: DjKey[Lab],
+    subjects: Sequence[DjRow[Subject]],
+    task: DjKey[Task] | None = None,
+    experimenter: DjKey[Experimenter] | None = None,
+    deployment: DjRow[Deployment] | None = None,
+    skip_duplicates: bool = True,
+) -> DjKey[Session]:
+    """Insert subject rows, then register a session linking them (one transaction).
+
+    ``subjects`` must be full insert dicts (not keys only). Existing primary keys
+    are left unchanged when ``skip_duplicates`` is true (attributes are not
+    updated). ``lab`` / ``task`` / ``experimenter`` remain existing keys only.
+
+    Args:
+        session_name: User-facing session label (non-empty after strip).
+        session_date: Calendar date of the session.
+        lab: Existing lab primary key.
+        subjects: Subject insert rows (``subject_id``, ``subject_kind``, …).
+        task: Optional existing task key.
+        experimenter: Optional existing experimenter key.
+        deployment: Optional deployment row; else from settings env vars.
+        skip_duplicates: Forwarded to DataJoint inserts.
+
+    Returns:
+        Session primary key ``{lab_id, session_id}``.
+
+    Raises:
+        ValueError: If ``session_name`` is empty, ``subjects`` is empty, or
+            ``deployment`` is omitted and ``SCENE_DEPLOYMENT_ID`` is unset.
+    """
+    name = session_name.strip()
+    if not name:
+        raise ValueError("session_name must be a non-empty string")
+    if not subjects:
+        raise ValueError("subjects must be a non-empty sequence of subject rows")
+
+    deployment_row = deployment if deployment is not None else _build_deployment_row_from_settings()
+
+    with Session.connection.transaction:
+        subject_keys = [register_subject(row, skip_duplicates=skip_duplicates) for row in subjects]
+        return _insert_session_bundle(
+            lab=lab,
+            name=name,
+            session_date=session_date,
+            subjects=subject_keys,
+            task=task,
+            experimenter=experimenter,
+            deployment_row=deployment_row,
+            skip_duplicates=skip_duplicates,
+        )

@@ -5,8 +5,10 @@ Keeping them in one package keeps provenance and session structure aligned acros
 
 Current package schemas (placeholders; definitions may change):
 
-- `base_schemas.schemas.experiment.lab` — `Lab`
-- `base_schemas.schemas.experiment.session` — `Session`
+- `base_schemas.schemas.scene.lab` — `Lab`
+- `base_schemas.schemas.scene.subject` — `SubjectKind`, `Subject`
+- `base_schemas.schemas.scene.task` — `Task`
+- `base_schemas.schemas.scene.session` — `Experimenter`, `Session`
 - `base_schemas.schemas.provenance.deployment` — `Deployment`
 - `base_schemas.schemas.provenance.row_meta` — `SessionRowMeta`
 
@@ -14,20 +16,48 @@ Also included:
 
 - `base_schemas.scripts.sync` — copy table rows between servers
 - `base_schemas.ingestion` — supported write path (`register_session`, …);
+- `base_schemas.admin` — catalog ensures (`ensure_lab`, `ensure_task`; admin DB role);
 
-### Register a session
+### Register subjects and sessions
 
-Set ``SCENE_DEPLOYMENT_ID`` once (optional ``SCENE_DEPLOYMENT_LABEL``). Pass
-``deployment={...}`` only to override:
+``Lab`` / ``Task`` are admin catalog tables — create with ``ensure_lab`` /
+``ensure_task`` (admin DB role). ``Experimenter`` is still a shared lookup;
+seed it directly or via a future admin helper. Subjects are everyday writes:
+
+- ``register_subject`` — insert a subject row, return its key
+- ``register_session`` — link **existing** subject keys (may be empty)
+- ``register_session_with_new_subjects`` — insert subject rows, then register
+  the session (one transaction)
+
+Set ``SCENE_DEPLOYMENT_ID`` once (optional ``SCENE_DEPLOYMENT_LABEL``).
+``session_id`` is always minted (UUID4 hex).
 
 ```python
 from datetime import date
-from base_schemas.ingestion import register_session
+from base_schemas.ingestion import (
+    new_subject_id,
+    register_session,
+    register_session_with_new_subjects,
+    register_subject,
+)
 
-key = register_session(
-    "mousear-session-015",  # human-friendly name
+# Existing subjects only:
+register_session(
+    "mousear-session-015",
     date(2026, 5, 1),
-    lab={"lab_id": "mlai", "lab_name": "Mathis Lab"},
+    lab={"lab_id": "mlai"},
+    subjects=[{"subject_id": "a" * 32}],
+    task={"task_name": "gaze_v1"},
+)
+
+# Create subjects + session together:
+register_session_with_new_subjects(
+    "mousear-session-016",
+    date(2026, 5, 2),
+    lab={"lab_id": "mlai"},
+    subjects=[
+        {"subject_id": new_subject_id(), "subject_kind": "mouse"},
+    ],
 )
 ```
 
@@ -39,20 +69,20 @@ Schemas stay unbound by default (no DB needed on import). Set
 ```python
 from base_schemas.core import SCENE_REGISTRY, activate_schema, load_settings
 
-schema = SCENE_REGISTRY.make_schema("experiment")  # unbound unless AUTO_ACTIVATE
+schema = SCENE_REGISTRY.make_schema("scene")  # unbound unless AUTO_ACTIVATE
 # @schema class Lab ...
-SCENE_REGISTRY.activate("experiment")  # uses context stored at make_schema
+SCENE_REGISTRY.activate("scene")  # uses context stored at make_schema
 SCENE_REGISTRY.activate_all()
 
 # Or bind any dj.Schema without the registry:
-activate_schema(schema, "experiment")
+activate_schema(schema, "scene")
 
 # Repeated registration returns the same instance
-SCENE_REGISTRY.make_schema("experiment") is schema
+SCENE_REGISTRY.make_schema("scene") is schema
 
 # Accessing the registry content
-"experiment" in SCENE_REGISTRY.schemas  # dict[str, dj.Schema]
-SCENE_REGISTRY.get("experiment") is schema
+"scene" in SCENE_REGISTRY.schemas  # dict[str, dj.Schema]
+SCENE_REGISTRY.get("scene") is schema
 ```
 
 | Variable | Meaning |

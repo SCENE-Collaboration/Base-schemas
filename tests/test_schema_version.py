@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from base_schemas.core import versioning as sv
-from base_schemas.schemas.experiment._schema import EXPERIMENT_SCHEMA_VERSION
+from base_schemas.schemas.scene._schema import SCENE_SCHEMA_VERSION
 
 
 class TestSchemaVersionStatus:
@@ -26,9 +26,9 @@ class TestSchemaVersionStatus:
         assert status.db_version == "0.1.0"
 
 
-def test_experiment_schema_version_constant():
-    assert isinstance(EXPERIMENT_SCHEMA_VERSION, str)
-    assert EXPERIMENT_SCHEMA_VERSION
+def test_scene_schema_version_constant():
+    assert isinstance(SCENE_SCHEMA_VERSION, str)
+    assert SCENE_SCHEMA_VERSION
 
 
 def test_get_db_schema_version_none():
@@ -84,11 +84,9 @@ def test_ensure_end_to_end_mismatch_without_patching_check():
 
 def test_assert_schema_compatible_ok():
     table = MagicMock()
-    status = sv.SchemaVersionStatus(EXPERIMENT_SCHEMA_VERSION, EXPERIMENT_SCHEMA_VERSION)
+    status = sv.SchemaVersionStatus(SCENE_SCHEMA_VERSION, SCENE_SCHEMA_VERSION)
     with patch.object(sv, "check_schema_version", return_value=status):
-        assert sv.assert_schema_compatible(EXPERIMENT_SCHEMA_VERSION, table) == (
-            EXPERIMENT_SCHEMA_VERSION
-        )
+        assert sv.assert_schema_compatible(SCENE_SCHEMA_VERSION, table) == (SCENE_SCHEMA_VERSION)
 
 
 def test_assert_schema_compatible_unset():
@@ -96,10 +94,10 @@ def test_assert_schema_compatible_unset():
     with patch.object(
         sv,
         "check_schema_version",
-        return_value=sv.SchemaVersionStatus(EXPERIMENT_SCHEMA_VERSION, None),
+        return_value=sv.SchemaVersionStatus(SCENE_SCHEMA_VERSION, None),
     ):
         with pytest.raises(sv.SchemaVersionError, match="not recorded"):
-            sv.assert_schema_compatible(EXPERIMENT_SCHEMA_VERSION, table)
+            sv.assert_schema_compatible(SCENE_SCHEMA_VERSION, table)
 
 
 def test_assert_schema_compatible_mismatch():
@@ -107,19 +105,17 @@ def test_assert_schema_compatible_mismatch():
     with patch.object(
         sv,
         "check_schema_version",
-        return_value=sv.SchemaVersionStatus(EXPERIMENT_SCHEMA_VERSION, "0.0.0"),
+        return_value=sv.SchemaVersionStatus(SCENE_SCHEMA_VERSION, "0.0.0"),
     ):
         with pytest.raises(sv.SchemaVersionError, match="mismatch"):
-            sv.assert_schema_compatible(EXPERIMENT_SCHEMA_VERSION, table)
+            sv.assert_schema_compatible(SCENE_SCHEMA_VERSION, table)
 
 
 def test_ensure_ok_no_insert():
     table = MagicMock()
-    status = sv.SchemaVersionStatus(EXPERIMENT_SCHEMA_VERSION, EXPERIMENT_SCHEMA_VERSION)
+    status = sv.SchemaVersionStatus(SCENE_SCHEMA_VERSION, SCENE_SCHEMA_VERSION)
     with patch.object(sv, "check_schema_version", return_value=status):
-        assert sv.ensure_schema_version(EXPERIMENT_SCHEMA_VERSION, table) == (
-            EXPERIMENT_SCHEMA_VERSION
-        )
+        assert sv.ensure_schema_version(SCENE_SCHEMA_VERSION, table) == (SCENE_SCHEMA_VERSION)
         table.insert1.assert_not_called()
 
 
@@ -128,15 +124,15 @@ def test_ensure_seeds_when_unset():
     with patch.object(
         sv,
         "check_schema_version",
-        return_value=sv.SchemaVersionStatus(EXPERIMENT_SCHEMA_VERSION, None),
+        return_value=sv.SchemaVersionStatus(SCENE_SCHEMA_VERSION, None),
     ):
         assert (
-            sv.ensure_schema_version(EXPERIMENT_SCHEMA_VERSION, table, notes="init")
-            == EXPERIMENT_SCHEMA_VERSION
+            sv.ensure_schema_version(SCENE_SCHEMA_VERSION, table, notes="init")
+            == SCENE_SCHEMA_VERSION
         )
         table.insert1.assert_called_once()
         row = table.insert1.call_args.args[0]
-        assert row["version"] == EXPERIMENT_SCHEMA_VERSION
+        assert row["version"] == SCENE_SCHEMA_VERSION
         assert row["notes"] == "init"
         assert "applied_at" in row
 
@@ -146,8 +142,8 @@ def test_ensure_mismatch_raises():
     with patch.object(
         sv,
         "check_schema_version",
-        return_value=sv.SchemaVersionStatus(EXPERIMENT_SCHEMA_VERSION, "0.0.0"),
+        return_value=sv.SchemaVersionStatus(SCENE_SCHEMA_VERSION, "0.0.0"),
     ):
         with pytest.raises(sv.SchemaVersionError, match="mismatch"):
-            sv.ensure_schema_version(EXPERIMENT_SCHEMA_VERSION, table)
+            sv.ensure_schema_version(SCENE_SCHEMA_VERSION, table)
         table.insert1.assert_not_called()
