@@ -31,7 +31,7 @@ def activate_schema(
 
     Args:
         schema: Unbound (or rebound) ``dj.Schema`` instance.
-        suffix: Logical schema name without prefix (e.g. ``"experiment"``).
+        suffix: Logical schema name without prefix (e.g. ``"scene"``).
         create_tables: Forwarded to ``schema.activate``.
         connection: Optional DataJoint connection forwarded to ``activate``.
 
@@ -107,7 +107,7 @@ class SchemaRegistry:
         repeated call that passes a different ``create_tables`` raises.
 
         Args:
-            suffix: Logical name without prefix (e.g. ``"experiment"``).
+            suffix: Logical name without prefix (e.g. ``"scene"``).
             create_tables: Forwarded when activating; ``True`` when omitted.
 
         Returns:
@@ -148,7 +148,7 @@ class SchemaRegistry:
         """Bind a registered schema by suffix using ``activate_schema``.
 
         Args:
-            suffix: Logical name without prefix (e.g. ``"experiment"``).
+            suffix: Logical name without prefix (e.g. ``"scene"``).
             create_tables: Forwarded to ``activate_schema``; defaults to the
                 value stored at registration when omitted.
             connection: Optional DataJoint connection forwarded to activate.

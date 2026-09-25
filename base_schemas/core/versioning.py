@@ -5,12 +5,12 @@ which records the code's version in the same step that creates the table. The
 helpers below check an existing database against the installed code, e.g.::
 
     from base_schemas.core.versioning import ensure_schema_version
-    from base_schemas.schemas.experiment._schema import (
-        EXPERIMENT_SCHEMA_VERSION,
+    from base_schemas.schemas.scene._schema import (
+        SCENE_SCHEMA_VERSION,
         SchemaVersion,
     )
 
-    ensure_schema_version(EXPERIMENT_SCHEMA_VERSION, SchemaVersion)
+    ensure_schema_version(SCENE_SCHEMA_VERSION, SchemaVersion)
 """
 
 from __future__ import annotations

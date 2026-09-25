@@ -8,9 +8,9 @@ from datetime import date
 from base_schemas.core.config import load_settings
 from base_schemas.core.types import DjKey, DjRow
 from base_schemas.ingestion.register.session_meta import upsert_session_row_meta
-from base_schemas.schemas.experiment.lab import Lab
-from base_schemas.schemas.experiment.session import Session
 from base_schemas.schemas.provenance.deployment import Deployment
+from base_schemas.schemas.scene.lab import Lab
+from base_schemas.schemas.scene.session import Session
 
 
 def new_session_id() -> str:

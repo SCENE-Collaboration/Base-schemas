@@ -1,4 +1,4 @@
-"""Live-DB smoke tests for experiment Lab / Session placeholders."""
+"""Live-DB smoke tests for scene Lab / Session placeholders."""
 
 import datetime as dt
 import os
@@ -28,8 +28,8 @@ def _clear_schema_version_test_rows(SchemaVersion):
 
 
 def test_lab_session_insert_roundtrip(dj_connection):
-    from base_schemas.schemas.experiment.lab import Lab
-    from base_schemas.schemas.experiment.session import Session
+    from base_schemas.schemas.scene.lab import Lab
+    from base_schemas.schemas.scene.session import Session
 
     lab_key = {"lab_id": "testlab"}
     Lab.insert1(
@@ -54,11 +54,11 @@ def test_lab_session_insert_roundtrip(dj_connection):
 
 def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     from base_schemas.core.hash import content_hash
-    from base_schemas.ingestion import EXPERIMENT_WRITER_VERSION, register_session
+    from base_schemas.ingestion import SCENE_WRITER_VERSION, register_session
     from base_schemas.ingestion.register.session_meta import session_etag_payload
-    from base_schemas.schemas.experiment.lab import Lab
-    from base_schemas.schemas.experiment.session import Session
     from base_schemas.schemas.provenance.row_meta import SessionRowMeta
+    from base_schemas.schemas.scene.lab import Lab
+    from base_schemas.schemas.scene.session import Session
 
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "test-local")
     monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "test")
@@ -76,33 +76,29 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     assert row["session_name"] == "Morning run"
     assert row["session_date"] == session_date
     meta = (SessionRowMeta & key).fetch1()
-    assert meta["ingestion_version"] == EXPERIMENT_WRITER_VERSION
+    assert meta["ingestion_version"] == SCENE_WRITER_VERSION
     assert meta["content_hash"] == content_hash(session_etag_payload(row))
     assert meta["deployment_id"] == os.environ["SCENE_DEPLOYMENT_ID"]
 
 
 def test_ensure_schema_version_idempotent_then_assert(dj_connection):
     from base_schemas.core.versioning import assert_schema_compatible, ensure_schema_version
-    from base_schemas.schemas.experiment._schema import (
-        EXPERIMENT_SCHEMA_VERSION,
+    from base_schemas.schemas.scene._schema import (
+        SCENE_SCHEMA_VERSION,
         SchemaVersion,
     )
 
     _clear_schema_version_test_rows(SchemaVersion)
     # Creating the table recorded the code's version (SchemaVersionTable.declare).
-    stored = SchemaVersion & {"version": EXPERIMENT_SCHEMA_VERSION}
+    stored = SchemaVersion & {"version": SCENE_SCHEMA_VERSION}
     assert stored.fetch1("notes") == "recorded on creation"
     assert (
-        ensure_schema_version(EXPERIMENT_SCHEMA_VERSION, SchemaVersion, notes="test-init")
-        == EXPERIMENT_SCHEMA_VERSION
+        ensure_schema_version(SCENE_SCHEMA_VERSION, SchemaVersion, notes="test-init")
+        == SCENE_SCHEMA_VERSION
     )
     # Second call must not insert again or raise when already compatible.
-    assert ensure_schema_version(EXPERIMENT_SCHEMA_VERSION, SchemaVersion) == (
-        EXPERIMENT_SCHEMA_VERSION
-    )
-    assert assert_schema_compatible(EXPERIMENT_SCHEMA_VERSION, SchemaVersion) == (
-        EXPERIMENT_SCHEMA_VERSION
-    )
+    assert ensure_schema_version(SCENE_SCHEMA_VERSION, SchemaVersion) == (SCENE_SCHEMA_VERSION)
+    assert assert_schema_compatible(SCENE_SCHEMA_VERSION, SchemaVersion) == (SCENE_SCHEMA_VERSION)
 
 
 def test_assert_schema_compatible_mismatch_against_live_db(dj_connection):
@@ -111,17 +107,17 @@ def test_assert_schema_compatible_mismatch_against_live_db(dj_connection):
         assert_schema_compatible,
         ensure_schema_version,
     )
-    from base_schemas.schemas.experiment._schema import (
-        EXPERIMENT_SCHEMA_VERSION,
+    from base_schemas.schemas.scene._schema import (
+        SCENE_SCHEMA_VERSION,
         SchemaVersion,
     )
 
     _clear_schema_version_test_rows(SchemaVersion)
-    ensure_schema_version(EXPERIMENT_SCHEMA_VERSION, SchemaVersion, notes="test-init")
+    ensure_schema_version(SCENE_SCHEMA_VERSION, SchemaVersion, notes="test-init")
     try:
         # Newer applied_at wins as "current" DB version → deliberate mismatch.
         # applied_at has 1 s resolution: insert strictly later than the stored row.
-        stored_at = (SchemaVersion & {"version": EXPERIMENT_SCHEMA_VERSION}).fetch1("applied_at")
+        stored_at = (SchemaVersion & {"version": SCENE_SCHEMA_VERSION}).fetch1("applied_at")
         SchemaVersion.insert1(
             {
                 "version": _TEST_MISMATCH_VERSION,
@@ -131,6 +127,6 @@ def test_assert_schema_compatible_mismatch_against_live_db(dj_connection):
             skip_duplicates=True,
         )
         with pytest.raises(SchemaVersionError, match="mismatch"):
-            assert_schema_compatible(EXPERIMENT_SCHEMA_VERSION, SchemaVersion)
+            assert_schema_compatible(SCENE_SCHEMA_VERSION, SchemaVersion)
     finally:
         _clear_schema_version_test_rows(SchemaVersion)

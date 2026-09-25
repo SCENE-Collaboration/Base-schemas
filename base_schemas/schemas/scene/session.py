@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import datajoint as dj
 
-from base_schemas.schemas.experiment._schema import schema
-from base_schemas.schemas.experiment.lab import Lab  # noqa: F401  # FK: Session -> Lab
+from base_schemas.schemas.scene._schema import schema
+from base_schemas.schemas.scene.lab import Lab  # noqa: F401  # FK: Session -> Lab
 
 
 @schema
