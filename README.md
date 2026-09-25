@@ -16,11 +16,13 @@ Also included:
 
 - `base_schemas.scripts.sync` — copy table rows between servers
 - `base_schemas.ingestion` — supported write path (`register_session`, …);
+- `base_schemas.admin` — catalog ensures (`ensure_lab`, `ensure_task`; admin DB role);
 
 ### Register subjects and sessions
 
-``Lab`` / ``Task`` / ``Experimenter`` must already exist (admin catalog). Subjects
-are everyday writes:
+``Lab`` / ``Task`` are admin catalog tables — create with ``ensure_lab`` /
+``ensure_task`` (admin DB role). ``Experimenter`` is still a shared lookup;
+seed it directly or via a future admin helper. Subjects are everyday writes:
 
 - ``register_subject`` — insert a subject row, return its key
 - ``register_session`` — link **existing** subject keys (may be empty)
