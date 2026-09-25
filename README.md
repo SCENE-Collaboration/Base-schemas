@@ -17,19 +17,45 @@ Also included:
 - `base_schemas.scripts.sync` — copy table rows between servers
 - `base_schemas.ingestion` — supported write path (`register_session`, …);
 
-### Register a session
+### Register subjects and sessions
 
-Set ``SCENE_DEPLOYMENT_ID`` once (optional ``SCENE_DEPLOYMENT_LABEL``). Pass
-``deployment={...}`` only to override:
+``Lab`` / ``Task`` / ``Experimenter`` must already exist (admin catalog). Subjects
+are everyday writes:
+
+- ``register_subject`` — insert a subject row, return its key
+- ``register_session`` — link **existing** subject keys (may be empty)
+- ``register_session_with_new_subjects`` — insert subject rows, then register
+  the session (one transaction)
+
+Set ``SCENE_DEPLOYMENT_ID`` once (optional ``SCENE_DEPLOYMENT_LABEL``).
+``session_id`` is always minted (UUID4 hex).
 
 ```python
 from datetime import date
-from base_schemas.ingestion import register_session
+from base_schemas.ingestion import (
+    new_subject_id,
+    register_session,
+    register_session_with_new_subjects,
+    register_subject,
+)
 
-key = register_session(
-    "mousear-session-015",  # human-friendly name
+# Existing subjects only:
+register_session(
+    "mousear-session-015",
     date(2026, 5, 1),
-    lab={"lab_id": "mlai", "lab_name": "Mathis Lab"},
+    lab={"lab_id": "mlai"},
+    subjects=[{"subject_id": "a" * 32}],
+    task={"task_name": "gaze_v1"},
+)
+
+# Create subjects + session together:
+register_session_with_new_subjects(
+    "mousear-session-016",
+    date(2026, 5, 2),
+    lab={"lab_id": "mlai"},
+    subjects=[
+        {"subject_id": new_subject_id(), "subject_kind": "mouse"},
+    ],
 )
 ```
 
