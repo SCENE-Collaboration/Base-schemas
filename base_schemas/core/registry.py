@@ -28,7 +28,7 @@ def activate_schema(
 
     Args:
         schema: Unbound (or rebound) ``dj.Schema`` instance.
-        suffix: Logical schema name without prefix (e.g. ``"experiment"``).
+        suffix: Logical schema name without prefix (e.g. ``"scene"``).
         context: Optional FK resolution mapping passed as ``add_objects``.
         create_tables: Forwarded to ``schema.activate``.
         connection: Optional DataJoint connection forwarded to ``activate``.
@@ -109,7 +109,7 @@ class SchemaRegistry:
         ``context`` / ``create_tables`` from the first call are kept.
 
         Args:
-            suffix: Logical name without prefix (e.g. ``"experiment"``).
+            suffix: Logical name without prefix (e.g. ``"scene"``).
             context: Optional FK resolution mapping. Stored for later
                 ``activate`` / ``activate_all``; used immediately when
                 auto-activating.
@@ -153,7 +153,7 @@ class SchemaRegistry:
         """Bind a registered schema by suffix using ``activate_schema``.
 
         Args:
-            suffix: Logical name without prefix (e.g. ``"experiment"``).
+            suffix: Logical name without prefix (e.g. ``"scene"``).
             context: Optional FK resolution mapping; defaults to the mapping
                 stored at registration when omitted.
             create_tables: Forwarded to ``activate_schema``; defaults to the

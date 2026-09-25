@@ -69,7 +69,7 @@ def test_upsert_session_row_meta_writes_version_hash_and_deployment():
     assert row["lab_id"] == "mlai"
     assert row["session_id"] == key["session_id"]
     assert row["deployment_id"] == "dep1"
-    assert row["ingestion_version"] == meta_reg.EXPERIMENT_WRITER_VERSION
+    assert row["ingestion_version"] == meta_reg.SCENE_WRITER_VERSION
     assert row["content_hash"] == content_hash(meta_reg.session_etag_payload(session))
     assert "updated_at" in row
     assert ins.call_args.kwargs["replace"] is True

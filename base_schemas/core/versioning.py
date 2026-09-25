@@ -4,12 +4,12 @@ Pass the expected code constant and the ``SchemaVersion`` table class for that
 schema, e.g.::
 
     from base_schemas.core.versioning import ensure_schema_version
-    from base_schemas.schemas.experiment._schema import (
-        EXPERIMENT_SCHEMA_VERSION,
+    from base_schemas.schemas.scene._schema import (
+        SCENE_SCHEMA_VERSION,
         SchemaVersion,
     )
 
-    ensure_schema_version(EXPERIMENT_SCHEMA_VERSION, SchemaVersion)
+    ensure_schema_version(SCENE_SCHEMA_VERSION, SchemaVersion)
 """
 
 from __future__ import annotations

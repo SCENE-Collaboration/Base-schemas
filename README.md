@@ -5,8 +5,8 @@ Keeping them in one package keeps provenance and session structure aligned acros
 
 Current package schemas (placeholders; definitions may change):
 
-- `base_schemas.schemas.experiment.lab` — `Lab`
-- `base_schemas.schemas.experiment.session` — `Session`
+- `base_schemas.schemas.scene.lab` — `Lab`
+- `base_schemas.schemas.scene.session` — `Session`
 - `base_schemas.schemas.provenance.deployment` — `Deployment`
 - `base_schemas.schemas.provenance.row_meta` — `SessionRowMeta`
 
@@ -39,20 +39,20 @@ Schemas stay unbound by default (no DB needed on import). Set
 ```python
 from base_schemas.core import SCENE_REGISTRY, activate_schema, load_settings
 
-schema = SCENE_REGISTRY.make_schema("experiment")  # unbound unless AUTO_ACTIVATE
+schema = SCENE_REGISTRY.make_schema("scene")  # unbound unless AUTO_ACTIVATE
 # @schema class Lab ...
-SCENE_REGISTRY.activate("experiment")  # uses context stored at make_schema
+SCENE_REGISTRY.activate("scene")  # uses context stored at make_schema
 SCENE_REGISTRY.activate_all()
 
 # Or bind any dj.Schema without the registry:
-activate_schema(schema, "experiment")
+activate_schema(schema, "scene")
 
 # Repeated registration returns the same instance
-SCENE_REGISTRY.make_schema("experiment") is schema
+SCENE_REGISTRY.make_schema("scene") is schema
 
 # Accessing the registry content
-"experiment" in SCENE_REGISTRY.schemas  # dict[str, dj.Schema]
-SCENE_REGISTRY.get("experiment") is schema
+"scene" in SCENE_REGISTRY.schemas  # dict[str, dj.Schema]
+SCENE_REGISTRY.get("scene") is schema
 ```
 
 | Variable | Meaning |

@@ -45,8 +45,8 @@ def wait_for_database(max_attempts=30, delay_seconds=2):
 
 
 def generate_erd(output_path="base_schemas_erd.png"):
-    from base_schemas.schemas.experiment import lab, session
     from base_schemas.schemas.provenance import deployment, row_meta
+    from base_schemas.schemas.scene import lab, session
 
     (
         dj.Diagram(lab.schema)

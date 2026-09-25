@@ -7,7 +7,7 @@ Environment
 -----------
 DJ_SCHEMA_PREFIX
     Prefix for every schema name. By convention include the trailing
-    underscore (e.g. ``dev_`` → ``dev_experiment``).
+    underscore (e.g. ``dev_`` → ``dev_scene``).
 AUTO_ACTIVATE
     Opt-in eager bind. If unset/false (default), schemas stay unbound until
     ``activate_schema`` / ``SCENE_REGISTRY.activate`` — no DB required on
@@ -44,7 +44,7 @@ class Settings:
     deployment_label: str
 
     def db_name(self, suffix: str) -> str:
-        """Full prefixed database name, e.g. ``'experiment'`` → ``'dev_experiment'``."""
+        """Full prefixed database name, e.g. ``'scene'`` → ``'dev_scene'``."""
         if not suffix:
             raise ValueError("schema suffix must be a non-empty string")
         return f"{self.prefix}{suffix}"
