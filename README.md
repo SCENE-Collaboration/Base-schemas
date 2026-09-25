@@ -8,7 +8,7 @@ Current package schemas (placeholders; definitions may change):
 - `base_schemas.schemas.scene.lab` — `Lab`
 - `base_schemas.schemas.scene.subject` — `SubjectKind`, `Subject`
 - `base_schemas.schemas.scene.task` — `Task`
-- `base_schemas.schemas.scene.session` — `Experimenter`, `Setup`, `Session`
+- `base_schemas.schemas.scene.session` — `Experimenter`, `Session`
 - `base_schemas.schemas.provenance.deployment` — `Deployment`
 - `base_schemas.schemas.provenance.row_meta` — `SessionRowMeta`
 

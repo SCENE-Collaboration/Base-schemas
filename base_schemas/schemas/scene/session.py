@@ -1,4 +1,4 @@
-"""SCENE-shared session spine (Experimenter, Setup, Session)."""
+"""SCENE-shared session spine (Experimenter, Session)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import datajoint as dj
 from base_schemas.core.types import DjKey, DjRow
 from base_schemas.ingestion.normalization import normalize_subject_ids
 from base_schemas.schemas.scene._schema import schema
-from base_schemas.schemas.scene.lab import Lab  # noqa: F401  # FK: Session/Setup -> Lab
+from base_schemas.schemas.scene.lab import Lab  # noqa: F401  # FK: Session -> Lab
 from base_schemas.schemas.scene.subject import Subject  # noqa: F401
 from base_schemas.schemas.scene.task import Task  # noqa: F401
 
@@ -27,18 +27,6 @@ class Experimenter(dj.Manual):
 
 
 @schema
-class Setup(dj.Manual):
-    """Recording setup / rig / room / booth (local to a lab)."""
-
-    definition = """
-    -> Lab
-    setup_id: varchar(64)
-    ---
-    details='': varchar(2048)
-    """
-
-
-@schema
 class Session(dj.Manual):
     """One data-collection session within a lab."""
 
@@ -50,7 +38,6 @@ class Session(dj.Manual):
     session_date: date
     -> [nullable] Task
     -> [nullable] Experimenter
-    -> [nullable] Setup
     """
 
     class Subject(dj.Part):  # noqa: F811

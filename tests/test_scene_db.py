@@ -57,9 +57,9 @@ def test_lab_session_insert_roundtrip(dj_connection):
     ).fetch1("session_date") == dt.date(2026, 1, 15)
 
 
-def test_subject_task_setup_and_multi_subject_session(dj_connection):
+def test_subject_task_and_multi_subject_session(dj_connection):
     from base_schemas.schemas.scene.lab import Lab
-    from base_schemas.schemas.scene.session import Experimenter, Session, Setup
+    from base_schemas.schemas.scene.session import Experimenter, Session
     from base_schemas.schemas.scene.subject import Subject, SubjectKind
     from base_schemas.schemas.scene.task import Task
 
@@ -86,10 +86,6 @@ def test_subject_task_setup_and_multi_subject_session(dj_connection):
         {"experimenter_name": "alice", "full_name": "Alice"},
         skip_duplicates=True,
     )
-    Setup.insert1(
-        {**lab_key, "setup_id": "booth-a", "details": "main booth"},
-        skip_duplicates=True,
-    )
 
     session_key = {**lab_key, "session_id": "f0e1d2c3b4a5968778695a4b3c2d1e0f"}
     subject_ids = [
@@ -104,7 +100,6 @@ def test_subject_task_setup_and_multi_subject_session(dj_connection):
                 "session_date": dt.date(2026, 6, 1),
                 "task_name": "gaze_v1",
                 "experimenter_name": "alice",
-                "setup_id": "booth-a",
             },
             subject_ids,
             skip_duplicates=True,
@@ -115,7 +110,6 @@ def test_subject_task_setup_and_multi_subject_session(dj_connection):
     row = (Session & session_key).fetch1()
     assert row["task_name"] == "gaze_v1"
     assert row["experimenter_name"] == "alice"
-    assert row["setup_id"] == "booth-a"
     assert set((Session.Subject & session_key).fetch("subject_id")) == set(subject_ids)
 
 
