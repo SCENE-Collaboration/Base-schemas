@@ -1,4 +1,4 @@
-"""SCENE shared identity + session graph (Lab, Session, SchemaVersion, …).
+"""SCENE shared identity + session graph (Lab, Subject, Task, Session, …).
 
 Placeholder scientific tables — definitions are subject to change.
 

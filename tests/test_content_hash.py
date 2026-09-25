@@ -19,10 +19,12 @@ def test_content_hash_changes_with_payload():
     base = {
         "session_date": str(date(2026, 1, 15)),
         "task_name": "gaze",
-        "subject_ids": ["kccl-00001"],
+        "subject_ids": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
     }
     assert content_hash(base) != content_hash({**base, "task_name": "reach"})
-    assert content_hash(base) != content_hash({**base, "subject_ids": ["kccl-00002"]})
+    assert content_hash(base) != content_hash(
+        {**base, "subject_ids": ["bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"]}
+    )
 
 
 def test_content_hash_default_str_for_non_json_types():
