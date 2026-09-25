@@ -52,12 +52,15 @@ def test_lab_session_insert_roundtrip(dj_connection):
     )
 
 
-def test_register_session_mints_id_and_stores_name(dj_connection):
+def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     from base_schemas.core.hash import content_hash
     from base_schemas.ingestion import EXPERIMENT_WRITER_VERSION, register_session
     from base_schemas.ingestion.register.session_meta import session_etag_payload
     from base_schemas.schemas.experiment.lab import Lab
     from base_schemas.schemas.experiment.session import Session, SessionRowMeta
+
+    monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "test-local")
+    monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "test")
 
     session_date = dt.date(2026, 5, 1)
     key = register_session(
