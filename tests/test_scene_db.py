@@ -36,10 +36,11 @@ def test_lab_session_insert_roundtrip(dj_connection):
         {**lab_key, "lab_name": "Test Lab", "institution": "Test U"},
         skip_duplicates=True,
     )
+    session_id = "a1b2c3d4e5f60718293a4b5c6d7e8f90"
     Session.insert1(
         {
             **lab_key,
-            "session_id": "s1",
+            "session_id": session_id,
             "session_name": "test session",
             "session_date": dt.date(2026, 1, 15),
         },
@@ -47,9 +48,13 @@ def test_lab_session_insert_roundtrip(dj_connection):
     )
 
     assert (Lab & lab_key).fetch1("lab_name") == "Test Lab"
-    assert (Session & {**lab_key, "session_id": "s1"}).fetch1("session_date") == dt.date(
-        2026, 1, 15
-    )
+    assert (
+        Session
+        & {
+            **lab_key,
+            "session_id": session_id,
+        }
+    ).fetch1("session_date") == dt.date(2026, 1, 15)
 
 
 def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
