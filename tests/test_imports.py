@@ -19,6 +19,16 @@ def test_import_lab_module(dj_connection):
     assert module is not None
 
 
+def test_import_subject_module(dj_connection):
+    module = importlib.import_module("base_schemas.schemas.scene.subject")
+    assert module is not None
+
+
+def test_import_task_module(dj_connection):
+    module = importlib.import_module("base_schemas.schemas.scene.task")
+    assert module is not None
+
+
 def test_import_session_module(dj_connection):
     module = importlib.import_module("base_schemas.schemas.scene.session")
     assert module is not None

@@ -57,6 +57,70 @@ def test_lab_session_insert_roundtrip(dj_connection):
     ).fetch1("session_date") == dt.date(2026, 1, 15)
 
 
+def test_subject_task_setup_and_multi_subject_session(dj_connection):
+    from base_schemas.schemas.scene.lab import Lab
+    from base_schemas.schemas.scene.session import Experimenter, Session, Setup
+    from base_schemas.schemas.scene.subject import Subject, SubjectKind
+    from base_schemas.schemas.scene.task import Task
+
+    lab_key = {"lab_id": "spinetest"}
+    Lab.insert1(
+        {**lab_key, "lab_name": "Spine Lab", "institution": "Test U"},
+        skip_duplicates=True,
+    )
+    assert len(SubjectKind()) >= 1
+
+    Subject.insert1(
+        {"subject_id": "11111111111111111111111111111111", "subject_kind": "mouse"},
+        skip_duplicates=True,
+    )
+    Subject.insert1(
+        {"subject_id": "22222222222222222222222222222222", "subject_kind": "mouse"},
+        skip_duplicates=True,
+    )
+    Task.insert1(
+        {"task_name": "gaze_v1", "task_title": "Gaze tracking"},
+        skip_duplicates=True,
+    )
+    Experimenter.insert1(
+        {"experimenter_name": "alice", "full_name": "Alice"},
+        skip_duplicates=True,
+    )
+    Setup.insert1(
+        {**lab_key, "setup_id": "booth-a", "details": "main booth"},
+        skip_duplicates=True,
+    )
+
+    session_key = {**lab_key, "session_id": "f0e1d2c3b4a5968778695a4b3c2d1e0f"}
+    Session.insert1(
+        {
+            **session_key,
+            "session_name": "multi-subject run",
+            "session_date": dt.date(2026, 6, 1),
+            "task_name": "gaze_v1",
+            "experimenter_name": "alice",
+            "setup_id": "booth-a",
+        },
+        skip_duplicates=True,
+    )
+    Session.Subject.insert(
+        [
+            {**session_key, "subject_id": "11111111111111111111111111111111"},
+            {**session_key, "subject_id": "22222222222222222222222222222222"},
+        ],
+        skip_duplicates=True,
+    )
+
+    row = (Session & session_key).fetch1()
+    assert row["task_name"] == "gaze_v1"
+    assert row["experimenter_name"] == "alice"
+    assert row["setup_id"] == "booth-a"
+    assert set((Session.Subject & session_key).fetch("subject_id")) == {
+        "11111111111111111111111111111111",
+        "22222222222222222222222222222222",
+    }
+
+
 def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     from base_schemas.core.hash import content_hash
     from base_schemas.ingestion import SCENE_WRITER_VERSION, register_session
