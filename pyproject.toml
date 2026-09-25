@@ -14,6 +14,7 @@ dependencies = [
     "datajoint>=0.13,<2.2; python_version < '3.9'",
     "datajoint>=2.2; python_version >= '3.9'",
     "packaging", # required by datajoint > 1
+    "typing_extensions>=4.6; python_version < '3.12'",
 ]
 
 [project.optional-dependencies]
@@ -52,8 +53,24 @@ select = [
     "I",
     "UP",
     "W",
+    "D",  # pydocstyle — Google form when a docstring exists
 ]
+ignore = [
+    # Missing docstrings are fine; enforce style only when one is present (D2xx/D4xx).
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "base_schemas/scripts/*.py" = ["E501"]
-"tests/*.py" = ["E501"]
+"tests/**/*.py" = ["E501", "D"]
+"examples/**/*.py" = ["D"]

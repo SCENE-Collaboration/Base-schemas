@@ -7,8 +7,29 @@ Current package schemas (placeholders; definitions may change):
 
 - `base_schemas.schemas.experiment.lab` — `Lab`
 - `base_schemas.schemas.experiment.session` — `Session`
+- `base_schemas.schemas.provenance.deployment` — `Deployment`
+- `base_schemas.schemas.provenance.row_meta` — `SessionRowMeta`
 
-Also included: `base_schemas.scripts.sync` for copying table rows between servers.
+Also included:
+
+- `base_schemas.scripts.sync` — copy table rows between servers
+- `base_schemas.ingestion` — supported write path (`register_session`, …);
+
+### Register a session
+
+Set ``SCENE_DEPLOYMENT_ID`` once (optional ``SCENE_DEPLOYMENT_LABEL``). Pass
+``deployment={...}`` only to override:
+
+```python
+from datetime import date
+from base_schemas.ingestion import register_session
+
+key = register_session(
+    "mousear-session-015",  # human-friendly name
+    date(2026, 5, 1),
+    lab={"lab_id": "mlai", "lab_name": "Mathis Lab"},
+)
+```
 
 ## Schema activation
 
@@ -38,6 +59,8 @@ SCENE_REGISTRY.get("experiment") is schema
 |----------|---------|
 | `DJ_SCHEMA_PREFIX` | Prefix for DB names (include trailing `_`) |
 | `AUTO_ACTIVATE` | If truthy, `make_schema` / Lab / Session bind on import |
+| `SCENE_DEPLOYMENT_ID` | Default deployment stamp for `register_session` |
+| `SCENE_DEPLOYMENT_LABEL` | Optional label when using the env default |
 
 ## Installation
 
