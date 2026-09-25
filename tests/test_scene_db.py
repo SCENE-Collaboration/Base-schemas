@@ -92,33 +92,31 @@ def test_subject_task_setup_and_multi_subject_session(dj_connection):
     )
 
     session_key = {**lab_key, "session_id": "f0e1d2c3b4a5968778695a4b3c2d1e0f"}
-    Session.insert1(
-        {
-            **session_key,
-            "session_name": "multi-subject run",
-            "session_date": dt.date(2026, 6, 1),
-            "task_name": "gaze_v1",
-            "experimenter_name": "alice",
-            "setup_id": "booth-a",
-        },
-        skip_duplicates=True,
-    )
-    Session.Subject.insert(
-        [
-            {**session_key, "subject_id": "11111111111111111111111111111111"},
-            {**session_key, "subject_id": "22222222222222222222222222222222"},
-        ],
-        skip_duplicates=True,
+    subject_ids = [
+        "11111111111111111111111111111111",
+        "22222222222222222222222222222222",
+    ]
+    assert (
+        Session.insert_with_subjects(
+            {
+                **session_key,
+                "session_name": "multi-subject run",
+                "session_date": dt.date(2026, 6, 1),
+                "task_name": "gaze_v1",
+                "experimenter_name": "alice",
+                "setup_id": "booth-a",
+            },
+            subject_ids,
+            skip_duplicates=True,
+        )
+        == session_key
     )
 
     row = (Session & session_key).fetch1()
     assert row["task_name"] == "gaze_v1"
     assert row["experimenter_name"] == "alice"
     assert row["setup_id"] == "booth-a"
-    assert set((Session.Subject & session_key).fetch("subject_id")) == {
-        "11111111111111111111111111111111",
-        "22222222222222222222222222222222",
-    }
+    assert set((Session.Subject & session_key).fetch("subject_id")) == set(subject_ids)
 
 
 def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):

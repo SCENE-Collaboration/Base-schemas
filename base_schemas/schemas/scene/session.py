@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import datajoint as dj
 
+from base_schemas.core.types import DjKey, DjRow
+from base_schemas.ingestion.normalization import normalize_subject_ids
 from base_schemas.schemas.scene._schema import schema
 from base_schemas.schemas.scene.lab import Lab  # noqa: F401  # FK: Session/Setup -> Lab
 from base_schemas.schemas.scene.subject import Subject  # noqa: F401
@@ -55,3 +59,22 @@ class Session(dj.Manual):
         -> master
         -> Subject
         """
+
+    @classmethod
+    def insert_with_subjects(
+        cls,
+        session: DjRow[Session],
+        subject_ids: str | Sequence[str],
+        *,
+        skip_duplicates: bool = False,
+    ) -> DjKey[Session]:
+        """Insert single transaction: ``Session`` + ``Session.Subject``."""
+        ids = normalize_subject_ids(subject_ids)
+        key: DjKey[Session] = {k: session[k] for k in cls.primary_key}
+        with cls.connection.transaction:
+            cls.insert1(session, skip_duplicates=skip_duplicates)
+            cls.Subject.insert(
+                [{**key, "subject_id": sid} for sid in ids],
+                skip_duplicates=skip_duplicates,
+            )
+        return key
