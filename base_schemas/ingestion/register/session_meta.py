@@ -7,8 +7,9 @@ from typing import Any
 
 from base_schemas.core.hash import content_hash
 from base_schemas.core.types import DjKey
-from base_schemas.schemas.experiment.deployment import Deployment
-from base_schemas.schemas.experiment.session import Session, SessionRowMeta
+from base_schemas.schemas.experiment.session import Session
+from base_schemas.schemas.provenance.deployment import Deployment
+from base_schemas.schemas.provenance.row_meta import SessionRowMeta
 
 EXPERIMENT_WRITER_VERSION = "0.0.1"
 

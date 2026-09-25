@@ -25,5 +25,10 @@ def test_import_session_module(dj_connection):
 
 
 def test_import_deployment_module(dj_connection):
-    module = importlib.import_module("base_schemas.schemas.experiment.deployment")
+    module = importlib.import_module("base_schemas.schemas.provenance.deployment")
+    assert module is not None
+
+
+def test_import_row_meta_module(dj_connection):
+    module = importlib.import_module("base_schemas.schemas.provenance.row_meta")
     assert module is not None

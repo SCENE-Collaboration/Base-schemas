@@ -5,7 +5,7 @@ Placeholder — table definitions are subject to change.
 
 import datajoint as dj
 
-from base_schemas.schemas.experiment._schema import schema
+from base_schemas.schemas.provenance._schema import schema
 
 
 @schema
@@ -13,7 +13,7 @@ class Deployment(dj.Manual):
     """Logical DB/instance/dataset identity for write provenance.
 
     Opaque ``deployment_id`` is stable across host/prefix moves. Human labels
-    may change; identity must not. Stamp on ``SessionRowMeta`` at write time.
+    may change; identity must not. Stamp on row-meta tables at write time.
     """
 
     definition = """

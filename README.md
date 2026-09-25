@@ -6,8 +6,9 @@ Keeping them in one package keeps provenance and session structure aligned acros
 Current package schemas (placeholders; definitions may change):
 
 - `base_schemas.schemas.experiment.lab` — `Lab`
-- `base_schemas.schemas.experiment.deployment` — `Deployment`
-- `base_schemas.schemas.experiment.session` — `Session`, `SessionRowMeta`
+- `base_schemas.schemas.experiment.session` — `Session`
+- `base_schemas.schemas.provenance.deployment` — `Deployment`
+- `base_schemas.schemas.provenance.row_meta` — `SessionRowMeta`
 
 Also included:
 
