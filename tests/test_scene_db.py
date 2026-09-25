@@ -92,20 +92,19 @@ def test_subject_task_and_multi_subject_session(dj_connection):
         "11111111111111111111111111111111",
         "22222222222222222222222222222222",
     ]
-    assert (
-        Session.insert_with_subjects(
-            {
-                **session_key,
-                "session_name": "multi-subject run",
-                "session_date": dt.date(2026, 6, 1),
-                "task_name": "gaze_v1",
-                "experimenter_name": "alice",
-            },
-            subject_ids,
+    session = {
+        **session_key,
+        "session_name": "multi-subject run",
+        "session_date": dt.date(2026, 6, 1),
+        "task_name": "gaze_v1",
+        "experimenter_name": "alice",
+    }
+    with Session.connection.transaction:
+        Session.insert1(session, skip_duplicates=True)
+        Session.Subject.insert(
+            [{**session_key, "subject_id": sid} for sid in subject_ids],
             skip_duplicates=True,
         )
-        == session_key
-    )
 
     row = (Session & session_key).fetch1()
     assert row["task_name"] == "gaze_v1"
@@ -119,26 +118,52 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     from base_schemas.ingestion.register.session_meta import session_etag_payload
     from base_schemas.schemas.provenance.row_meta import SessionRowMeta
     from base_schemas.schemas.scene.lab import Lab
-    from base_schemas.schemas.scene.session import Session
+    from base_schemas.schemas.scene.session import Experimenter, Session
+    from base_schemas.schemas.scene.subject import Subject
+    from base_schemas.schemas.scene.task import Task
 
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "test-local")
     monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "test")
+
+    lab_key = {"lab_id": "reglab"}
+    Lab.insert1(
+        {**lab_key, "lab_name": "Register Lab", "institution": "Test U"},
+        skip_duplicates=True,
+    )
+    subject_id = "33333333333333333333333333333333"
+    Subject.insert1(
+        {"subject_id": subject_id, "subject_kind": "mouse"},
+        skip_duplicates=True,
+    )
+    Task.insert1(
+        {"task_name": "reg_task", "task_title": "Register task"},
+        skip_duplicates=True,
+    )
+    Experimenter.insert1(
+        {"experimenter_name": "reg_user", "full_name": "Reg User"},
+        skip_duplicates=True,
+    )
 
     session_date = dt.date(2026, 5, 1)
     key = register_session(
         "Morning run",
         session_date,
-        lab={"lab_id": "reglab", "lab_name": "Register Lab", "institution": "Test U"},
+        lab=lab_key,
+        subjects=[{"subject_id": subject_id}],
+        task={"task_name": "reg_task"},
+        experimenter={"experimenter_name": "reg_user"},
     )
     assert key["lab_id"] == "reglab"
     assert len(key["session_id"]) == 32
-    assert (Lab & {"lab_id": "reglab"}).fetch1("lab_name") == "Register Lab"
     row = (Session & key).fetch1()
     assert row["session_name"] == "Morning run"
     assert row["session_date"] == session_date
+    assert row["task_name"] == "reg_task"
+    assert row["experimenter_name"] == "reg_user"
+    assert list((Session.Subject & key).fetch("subject_id")) == [subject_id]
     meta = (SessionRowMeta & key).fetch1()
     assert meta["ingestion_version"] == SCENE_WRITER_VERSION
-    assert meta["content_hash"] == content_hash(session_etag_payload(row))
+    assert meta["content_hash"] == content_hash(session_etag_payload(row, [subject_id]))
     assert meta["deployment_id"] == os.environ["SCENE_DEPLOYMENT_ID"]
 
 
