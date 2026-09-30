@@ -40,6 +40,8 @@ filterwarnings = [
 line-length = 100
 target-version = "py38"
 src = ["base_schemas", "tests"]
+# Honor the excludes below also for paths passed explicitly (pre-commit does that).
+force-exclude = true
 extend-exclude = [
     # Frozen Mathis-lab example schemas — keep DJ definitions as-is.
     "examples/mlai_schemas",

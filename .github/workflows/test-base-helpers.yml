@@ -31,8 +31,8 @@ jobs:
 
       - name: Ruff
         run: |
-          ruff check base_schemas tests
-          ruff format --check base_schemas tests
+          ruff check .
+          ruff format --check .
 
       - name: Run unit tests
         run: |
