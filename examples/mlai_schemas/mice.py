@@ -1,11 +1,8 @@
-"""
-    Minimal Schema version for experimental information
-"""
+"""Mathis-lab mouse tables (example)."""
 
 import os
 
 import datajoint as dj
-
 
 if os.getenv("USE_LAZY_SCHEMA"):
     schema = dj.Schema()  # does not require a database connection
@@ -16,7 +13,6 @@ else:
 
 @schema
 class Strain(dj.Lookup):
-
     definition = """    # Genetic type of the mouse
     strain          : char(128) # mouse variant short name
     ---
@@ -30,7 +26,6 @@ class Strain(dj.Lookup):
 
 @schema
 class Mouse(dj.Manual):
-
     definition = """
       mouse_name    : varchar(128)             # name of mouse (unique)
       ---
@@ -62,7 +57,7 @@ class Mouse(dj.Manual):
         """
 
         if len(self) != 1:  # Check if self corresponds only to a single mouse
-            raise Exception("Query resulted in %i mice! Only 1 result allowed..." % len(self))
+            raise Exception(f"Query resulted in {len(self)} mice! Only 1 result allowed...")
 
         from . import exp
 
@@ -87,7 +82,7 @@ class Mouse(dj.Manual):
         - If there are no experiments in the current query result, the current day is assumed to be 1.
         """
         startDate = self.get_starting_date()
-        if startDate == None:
+        if startDate is None:
             return 1
 
         import datetime
@@ -117,7 +112,7 @@ class Mouse(dj.Manual):
         """
 
         if len(self) != 1:  # Check if self corresponds only to a single mouse
-            raise Exception("Query resulted in %i mice! Only 1 result allowed..." % len(self))
+            raise Exception(f"Query resulted in {len(self)} mice! Only 1 result allowed...")
 
         from . import exp
 
@@ -130,7 +125,6 @@ class Mouse(dj.Manual):
 
 @schema
 class SurgeryType(dj.Lookup):
-
     definition = """
     surgery_type    : varchar(128) # surgery short name
     ---
@@ -142,7 +136,6 @@ class SurgeryType(dj.Lookup):
 
 @schema
 class Surgery(dj.Manual):
-
     definition = """ # Details about the surgery
     -> Mouse
     ---
@@ -154,7 +147,6 @@ class Surgery(dj.Manual):
 
 @schema
 class Sacrificed(dj.Manual):
-
     definition = """ # table to keep the record for sacrifice.Also, not to show in the dropdown menu!
     -> Mouse
     ---
@@ -165,7 +157,6 @@ class Sacrificed(dj.Manual):
 
 @schema
 class Breed(dj.Manual):
-
     definition = """ # table to keep the record for breeding. Also, not to show in the dropdown menu!
     -> Mouse
     ---
@@ -174,7 +165,6 @@ class Breed(dj.Manual):
 
 @schema
 class MouseLicensingGeneva(dj.Lookup):
-
     definition = """
     license   : varchar(128) # licensing name
     ---
@@ -187,7 +177,6 @@ class MouseLicensingGeneva(dj.Lookup):
 
 @schema
 class MouseScoreSheet_BodyCondition(dj.Lookup):
-
     definition = """
     body_condition   : varchar(128) # short body condition name
     ---
@@ -204,7 +193,6 @@ class MouseScoreSheet_BodyCondition(dj.Lookup):
 
 @schema
 class MouseScoreSheet_GeneralAssay(dj.Lookup):
-
     definition = """
     general_assay   : varchar(128) # general assay score name
     ---
@@ -221,7 +209,6 @@ class MouseScoreSheet_GeneralAssay(dj.Lookup):
 
 @schema
 class MouseScoreSheet_HousingAssesment(dj.Lookup):
-
     definition = """
     housing_assay   : varchar(128) # general assay score name
     ---
@@ -235,7 +222,6 @@ class MouseScoreSheet_HousingAssesment(dj.Lookup):
 
 @schema
 class MouseScoreSheet_WaterRestriction(dj.Manual):
-
     definition = """
     -> Mouse
     doc : date          # date of check
@@ -246,7 +232,6 @@ class MouseScoreSheet_WaterRestriction(dj.Manual):
 
 @schema
 class MouseScoreSheet(dj.Manual):
-
     definition = """
     -> Mouse
     doc : date          # date of check

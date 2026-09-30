@@ -1,12 +1,10 @@
+"""Mathis-lab experiment session tables (example)."""
+
 import os
 
 import datajoint as dj
 
-from base_schemas.schemas import mice
-
-"""
-    Minimal Schema version for experimental information
-"""
+from . import mice  # noqa: F401  # FK context: Session -> mice.Mouse
 
 if os.getenv("USE_LAZY_SCHEMA"):
     schema = dj.Schema()  # does not require a database connection
@@ -156,7 +154,7 @@ class Session(dj.Manual):
     @classmethod
     def get_sessions_for_pipeline(cls, pipeline_name):
         return cls & [
-            "task_name = '{}'".format(task) for task in Task.get_pipeline_task_names(pipeline_name)
+            f"task_name = '{task}'" for task in Task.get_pipeline_task_names(pipeline_name)
         ]
 
 

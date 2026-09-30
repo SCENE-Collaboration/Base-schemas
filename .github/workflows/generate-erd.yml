@@ -1,4 +1,4 @@
-name: ERD and integration tests
+name: ERD and DB tests
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  erd-and-integration:
+  erd-and-db:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -32,7 +32,6 @@ jobs:
     env:
       USE_LAZY_SCHEMA: ${{ matrix.python-version == '3.8' && '1' || '' }}
       DJ_HOST: 127.0.0.1
-      DJ_PORT: 3306
       DJ_USER: root
       DJ_PASS: simple
       MPLCONFIGDIR: /tmp/matplotlib
@@ -49,19 +48,19 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e . pytest numpy
+          python -m pip install -e . pytest
           sudo apt-get update
           sudo apt-get install -y graphviz
 
-      - name: Run import test
+      - name: Run DB tests
         run: |
-          pytest -q tests/test_imports.py
+          pytest -q tests/ -m db
 
       - name: Generate ERD
         id: generate_erd
         if: matrix.python-version == '3.12'
         run: |
-          python tests/generate_erd.py
+          python tools/generate_erd.py
 
       - name: Upload ERD artifact
         if: steps.generate_erd.outcome == 'success'
@@ -69,8 +68,3 @@ jobs:
         with:
           name: base-schemas-erd
           path: base_schemas_erd.png
-
-      - name: Run integration tests
-        if: matrix.python-version != '3.8'
-        run: |
-          pytest -q tests/test_populate_base_db.py -o log_cli=true --log-cli-level=INFO
