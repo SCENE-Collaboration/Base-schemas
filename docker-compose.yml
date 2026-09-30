@@ -14,7 +14,7 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     volumes:
-      - ${DATABASE_MOUNT}/mysql:/var/lib/mysql
+      - ${DATABASE_MOUNT:-./.dbdata}/mysql:/var/lib/mysql
     healthcheck:
       test:
         [
@@ -34,7 +34,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./:/base-schemas
-      - ${DATABASE_MOUNT}/shared:/shared
+      - ${DATABASE_MOUNT:-./.dbdata}/shared:/shared
     working_dir: /base-schemas
     env_file:
       - .env
