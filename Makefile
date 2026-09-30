@@ -10,14 +10,6 @@ BUILD_ARGS := \
 	--build-arg gid=$(GID) \
 	--build-arg user_name=$(UNAME)
 
-ifneq (,$(wildcard .env))
-include .env
-export
-endif
-
-# Host port published to MySQL (MySQL's default listen port inside the container is 3306).
-MYSQL_PUBLISH_PORT ?= 3306
-
 .PHONY: init build_all db_up up_all down_all client_build client_up client_stop \
 	client_down client_bash test test-db
 
@@ -57,6 +49,9 @@ test:
 	pytest -q tests/ -m "not db"
 
 # DB smoke tests on the host against published MySQL (client → server).
+# .env is loaded by the shell (not by make), so quoted values may contain '#' or '$'.
+# MYSQL_PUBLISH_PORT defaults to MySQL's 3306.
 test-db: db_up
-	DJ_HOST=127.0.0.1 DJ_PORT=$(MYSQL_PUBLISH_PORT) DJ_USER=root DJ_PASS=$(MYSQL_ROOT_PASSWORD) \
+	set -a && . ./.env && set +a && \
+	DJ_HOST=127.0.0.1 DJ_PORT=$${MYSQL_PUBLISH_PORT:-3306} DJ_USER=root DJ_PASS="$$MYSQL_ROOT_PASSWORD" \
 		pytest -q tests/ -m db
