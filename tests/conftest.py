@@ -13,10 +13,15 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
-TEST_SCHEMA_PREFIX = os.environ.setdefault(
-    "DJ_SCHEMA_PREFIX",
-    f"test_{uuid.uuid4().hex[:8]}_",
-)
+# Tests always run under their own prefix, never the DJ_SCHEMA_PREFIX of the
+# environment (e.g. ``dev_`` exported from .env). Override with TEST_SCHEMA_PREFIX.
+TEST_SCHEMA_PREFIX = os.environ.get("TEST_SCHEMA_PREFIX") or f"test_{uuid.uuid4().hex[:8]}_"
+if not TEST_SCHEMA_PREFIX.startswith("test_"):
+    raise pytest.UsageError(
+        f"TEST_SCHEMA_PREFIX {TEST_SCHEMA_PREFIX!r} must start with 'test_' "
+        "so tests never write into a dev or production schema"
+    )
+os.environ["DJ_SCHEMA_PREFIX"] = TEST_SCHEMA_PREFIX
 
 
 @pytest.fixture(scope="session")
