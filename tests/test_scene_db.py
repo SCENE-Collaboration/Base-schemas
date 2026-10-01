@@ -204,7 +204,7 @@ def test_ensure_lab_duplicate_policy_roundtrip(dj_connection, monkeypatch):
 
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "policy-dep")
     monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "policy")
-    lab_key = {"lab_id": "policylab"}
+    lab_key = {"lab_id": "pol_lab"}
     (LabRowMeta & lab_key).delete_quick()
     (Lab & lab_key).delete_quick()
     lab = {**lab_key, "lab_name": "Policy Lab", "institution": "Test U"}
