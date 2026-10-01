@@ -22,7 +22,7 @@ def test_load_settings_prefix_and_auto_activate(monkeypatch):
     settings = load_settings()
     assert settings.prefix == "dev_"
     assert settings.auto_activate is True
-    assert settings.db_name("experiment") == "dev_experiment"
+    assert settings.db_name("scene") == "dev_scene"
 
 
 def test_load_settings_deployment(monkeypatch):

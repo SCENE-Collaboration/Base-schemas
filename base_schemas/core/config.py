@@ -7,7 +7,7 @@ Environment
 -----------
 DJ_SCHEMA_PREFIX
     Prefix for every schema name; empty, or ending in an underscore
-    (e.g. ``dev_`` → ``dev_experiment``).
+    (e.g. ``dev_`` → ``dev_scene``).
 AUTO_ACTIVATE
     Opt-in eager bind. If unset/false (default), schemas stay unbound until
     ``activate_schema`` / ``SCENE_REGISTRY.activate`` — no DB required on
@@ -44,7 +44,7 @@ class Settings:
     deployment_label: str
 
     def db_name(self, suffix: str) -> str:
-        """Full prefixed database name, e.g. ``'experiment'`` → ``'dev_experiment'``."""
+        """Full prefixed database name, e.g. ``'scene'`` → ``'dev_scene'``."""
         if not suffix:
             raise ValueError("schema suffix must be a non-empty string")
         return f"{self.prefix}{suffix}"
@@ -58,7 +58,7 @@ def load_settings() -> Settings:
     if prefix and not prefix.endswith("_"):
         raise ValueError(
             f"Invalid DJ_SCHEMA_PREFIX {prefix!r}: must end with '_' "
-            f"(e.g. {prefix + '_'!r} → {prefix + '_experiment'!r})"
+            f"(e.g. {prefix + '_'!r} → {prefix + '_scene'!r})"
         )
     deployment_id = (os.environ.get("SCENE_DEPLOYMENT_ID") or "").strip() or None
     deployment_label = (os.environ.get("SCENE_DEPLOYMENT_LABEL") or "").strip()

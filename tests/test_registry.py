@@ -29,7 +29,7 @@ def test_make_schema_lazy_by_default(monkeypatch, registry):
     monkeypatch.delenv("AUTO_ACTIVATE", raising=False)
     monkeypatch.setenv("DJ_SCHEMA_PREFIX", "ignored_until_activate_")
     monkeypatch.setattr(registry_mod.dj, "Schema", FakeSchema)
-    schema = registry.make_schema("experiment")
+    schema = registry.make_schema("scene")
     assert schema.database is None
     assert schema.calls == 0
 
@@ -53,34 +53,34 @@ def test_make_schema_reuses_same_suffix(monkeypatch, registry):
     monkeypatch.delenv("AUTO_ACTIVATE", raising=False)
     monkeypatch.setattr(registry_mod.dj, "Schema", FakeSchema)
 
-    first = registry.make_schema("experiment", create_tables=False)
-    assert registry.make_schema("experiment") is first
-    assert registry.make_schema("experiment", create_tables=False) is first
-    assert list(registry.schemas) == ["experiment"]
-    assert registry.get("experiment") is first
+    first = registry.make_schema("scene", create_tables=False)
+    assert registry.make_schema("scene") is first
+    assert registry.make_schema("scene", create_tables=False) is first
+    assert list(registry.schemas) == ["scene"]
+    assert registry.get("scene") is first
 
 
 def test_make_schema_rejects_conflicting_create_tables(monkeypatch, registry):
     monkeypatch.delenv("AUTO_ACTIVATE", raising=False)
     monkeypatch.setattr(registry_mod.dj, "Schema", FakeSchema)
 
-    registry.make_schema("experiment", create_tables=False)
+    registry.make_schema("scene", create_tables=False)
     with pytest.raises(ValueError, match="create_tables=False"):
-        registry.make_schema("experiment", create_tables=True)
+        registry.make_schema("scene", create_tables=True)
 
 
 def test_registry_inspection(monkeypatch, registry):
     monkeypatch.delenv("AUTO_ACTIVATE", raising=False)
     monkeypatch.setattr(registry_mod.dj, "Schema", FakeSchema)
 
-    schema = registry.make_schema("experiment")
-    assert "experiment" in registry.schemas
+    schema = registry.make_schema("scene")
+    assert "scene" in registry.schemas
     assert "missing" not in registry.schemas
     assert registry.get("missing") is None
-    assert registry.schemas == {"experiment": schema}
+    assert registry.schemas == {"scene": schema}
     # Snapshot: mutating the returned dict does not alter the registry.
-    registry.schemas["experiment"] = FakeSchema()
-    assert registry.get("experiment") is schema
+    registry.schemas["scene"] = FakeSchema()
+    assert registry.get("scene") is schema
 
 
 def test_activate_uses_registered_suffix_and_create_tables(monkeypatch, registry):
@@ -88,22 +88,22 @@ def test_activate_uses_registered_suffix_and_create_tables(monkeypatch, registry
     monkeypatch.delenv("AUTO_ACTIVATE", raising=False)
     monkeypatch.setattr(registry_mod.dj, "Schema", FakeSchema)
 
-    schema = registry.make_schema("experiment", create_tables=False)
-    registry.activate("experiment")
-    assert schema.database == "dev_experiment"
+    schema = registry.make_schema("scene", create_tables=False)
+    registry.activate("scene")
+    assert schema.database == "dev_scene"
     assert schema.kwargs["create_tables"] is False
 
 
 def test_activate_unknown_suffix_raises(registry):
     with pytest.raises(KeyError, match="unknown schema"):
-        registry.activate("experiment")
+        registry.activate("scene")
 
 
 def test_activate_schema_binds_any_schema(monkeypatch):
     monkeypatch.setenv("DJ_SCHEMA_PREFIX", "dev_")
     schema = FakeSchema()
-    registry_mod.activate_schema(schema, "experiment", create_tables=False)
-    assert schema.database == "dev_experiment"
+    registry_mod.activate_schema(schema, "scene", create_tables=False)
+    assert schema.database == "dev_scene"
     assert schema.kwargs["create_tables"] is False
 
 

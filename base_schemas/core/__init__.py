@@ -1,5 +1,6 @@
 """Shared core helpers (config + registry / versioning / hash / types)."""
 
+from base_schemas.core.access_markers import AccessRole, mark_admin_write
 from base_schemas.core.config import Settings, load_settings
 from base_schemas.core.hash import content_hash
 from base_schemas.core.registry import SCENE_REGISTRY, SchemaRegistry, activate_schema
@@ -14,6 +15,7 @@ from base_schemas.core.versioning import (
 )
 
 __all__ = [
+    "AccessRole",
     "DjKey",
     "DjRow",
     "SCENE_REGISTRY",
@@ -22,6 +24,7 @@ __all__ = [
     "SchemaVersionStatus",
     "Settings",
     "activate_schema",
+    "mark_admin_write",
     "assert_schema_compatible",
     "check_schema_version",
     "content_hash",
