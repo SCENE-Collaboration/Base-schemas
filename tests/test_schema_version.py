@@ -151,3 +151,22 @@ def test_ensure_mismatch_raises():
         with pytest.raises(sv.SchemaVersionError, match="mismatch"):
             sv.ensure_schema_version(EXPERIMENT_SCHEMA_VERSION, table)
         table.insert1.assert_not_called()
+
+
+def test_schema_version_table_records_code_version_on_declare(monkeypatch):
+    class SchemaVersion(sv.SchemaVersionTable):
+        code_version = "0.2.0"
+
+    declared, inserted = [], []
+    monkeypatch.setattr(sv.dj.Manual, "declare", lambda self, context=None: declared.append(1))
+    monkeypatch.setattr(
+        SchemaVersion, "insert1", lambda self, row, **kwargs: inserted.append((row, kwargs))
+    )
+
+    SchemaVersion().declare()
+
+    assert declared == [1]
+    [(row, kwargs)] = inserted
+    assert row["version"] == "0.2.0"
+    assert row["notes"] == "recorded on creation"
+    assert kwargs == {"skip_duplicates": True}

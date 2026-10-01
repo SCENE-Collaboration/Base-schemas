@@ -89,6 +89,9 @@ def test_ensure_schema_version_idempotent_then_assert(dj_connection):
     )
 
     _clear_schema_version_test_rows(SchemaVersion)
+    # Creating the table recorded the code's version (SchemaVersionTable.declare).
+    stored = SchemaVersion & {"version": EXPERIMENT_SCHEMA_VERSION}
+    assert stored.fetch1("notes") == "recorded on creation"
     assert (
         ensure_schema_version(EXPERIMENT_SCHEMA_VERSION, SchemaVersion, notes="test-init")
         == EXPERIMENT_SCHEMA_VERSION

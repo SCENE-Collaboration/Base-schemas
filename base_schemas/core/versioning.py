@@ -1,7 +1,8 @@
 """Generic DDL schema-version helpers (per MySQL schema / version table).
 
-Pass the expected code constant and the ``SchemaVersion`` table class for that
-schema, e.g.::
+Each schema defines its ``SchemaVersion`` table from ``SchemaVersionTable``,
+which records the code's version in the same step that creates the table. The
+helpers below check an existing database against the installed code, e.g.::
 
     from base_schemas.core.versioning import ensure_schema_version
     from base_schemas.schemas.experiment._schema import (
@@ -16,6 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import ClassVar
 
 import datajoint as dj
 
@@ -38,6 +40,40 @@ class SchemaVersionStatus:
     @property
     def is_compatible(self) -> bool:
         return self.db_version == self.expected_version
+
+
+class SchemaVersionTable(dj.Manual):
+    """Base for a schema's ``SchemaVersion`` table (subclass it; do not decorate this).
+
+    Creating the table records ``code_version`` right away, so a database never
+    exists without its version. Append a row when a migration has been applied;
+    the latest ``applied_at`` row is the current version.
+
+    Attributes:
+        code_version: Schema version of the installed code, e.g. ``"0.2.0"``.
+    """
+
+    code_version: ClassVar[str]
+
+    definition = """
+    version: varchar(32)  # schema definition version, e.g. 0.2.0
+    ---
+    applied_at: datetime
+    notes='': varchar(512)
+    """
+
+    def declare(self, context=None):
+        """Create the table and record ``code_version`` in it."""
+        super().declare(context)
+        # skip_duplicates: declare() returns quietly if another process created it first.
+        self.insert1(
+            {
+                "version": self.code_version,
+                "applied_at": datetime.now(timezone.utc).replace(tzinfo=None),
+                "notes": "recorded on creation",
+            },
+            skip_duplicates=True,
+        )
 
 
 def get_db_schema_version(version_table: type[dj.Manual]) -> str | None:
