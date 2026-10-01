@@ -103,8 +103,6 @@ def test_ensure_schema_version_idempotent_then_assert(dj_connection):
 
 
 def test_assert_schema_compatible_mismatch_against_live_db(dj_connection):
-    from datetime import datetime, timezone
-
     from base_schemas.core.versioning import (
         SchemaVersionError,
         assert_schema_compatible,
@@ -119,10 +117,12 @@ def test_assert_schema_compatible_mismatch_against_live_db(dj_connection):
     ensure_schema_version(EXPERIMENT_SCHEMA_VERSION, SchemaVersion, notes="test-init")
     try:
         # Newer applied_at wins as "current" DB version → deliberate mismatch.
+        # applied_at has 1 s resolution: insert strictly later than the stored row.
+        stored_at = (SchemaVersion & {"version": EXPERIMENT_SCHEMA_VERSION}).fetch1("applied_at")
         SchemaVersion.insert1(
             {
                 "version": _TEST_MISMATCH_VERSION,
-                "applied_at": datetime.now(timezone.utc).replace(tzinfo=None),
+                "applied_at": stored_at + dt.timedelta(seconds=1),
                 "notes": "force mismatch for test",
             },
             skip_duplicates=True,
