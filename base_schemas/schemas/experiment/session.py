@@ -3,17 +3,10 @@
 Placeholder — table definitions are subject to change.
 """
 
-import os
-
 import datajoint as dj
 
+from base_schemas.schemas.experiment._schema import schema
 from base_schemas.schemas.experiment.lab import Lab  # noqa: F401  # FK: Session -> Lab
-
-if os.getenv("USE_LAZY_SCHEMA"):
-    schema = dj.Schema()  # does not require a database connection
-else:
-    PREFIX = os.getenv("DJ_SCHEMA_PREFIX", "")
-    schema = dj.Schema(f"{PREFIX}experiment", locals(), create_tables=True)
 
 
 @schema

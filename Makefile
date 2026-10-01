@@ -54,4 +54,5 @@ test:
 test-db: db_up
 	set -a && . ./.env && set +a && \
 	DJ_HOST=127.0.0.1 DJ_PORT=$${MYSQL_PUBLISH_PORT:-3306} DJ_USER=root DJ_PASS="$$MYSQL_ROOT_PASSWORD" \
+	AUTO_ACTIVATE=1 \
 		pytest -q tests/ -m db

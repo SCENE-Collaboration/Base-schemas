@@ -6,7 +6,7 @@ Requires DataJoint >= 2.2 for `dj.Instance`.
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Mapping
+from collections.abc import Iterable, Mapping
 
 import datajoint as dj
 
@@ -62,7 +62,7 @@ def sync_tables(
             table has different physical names on the two servers (e.g.
             legacy `__` on the source vs. DJ 2.2 `_` on the target).
         Class instances can be bound to either server's connection (or to
-        none, if imported under USE_LAZY_SCHEMA).
+        none, if imported unbound / without AUTO_ACTIVATE).
     restrictions : Mapping, optional
         Per-table DataJoint restriction applied to the source before fetching,
         e.g. {Session: "doe >= '2026-01-01'"} for incremental syncs. Keys must
