@@ -1,7 +1,9 @@
 """SCENE-shared session spine.
 
-Placeholder — table definitions are subject to change.
+Placeholder scientific fields — definitions are subject to change.
 """
+
+from __future__ import annotations
 
 import datajoint as dj
 
@@ -15,7 +17,8 @@ class Session(dj.Manual):
 
     definition = """
     -> Lab
-    session_id: varchar(64)
+    session_id: varchar(64)  # stable token; never renamed
     ---
+    session_name: varchar(128)  # user-facing label
     session_date: date
     """

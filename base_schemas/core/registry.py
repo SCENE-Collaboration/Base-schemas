@@ -147,7 +147,6 @@ class SchemaRegistry:
     ) -> dj.Schema:
         """Bind a registered schema by suffix using ``activate_schema``.
 
-
         Args:
             suffix: Logical name without prefix (e.g. ``"experiment"``).
             create_tables: Forwarded to ``activate_schema``; defaults to the
