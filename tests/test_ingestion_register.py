@@ -111,6 +111,8 @@ def test_register_session_uses_settings_deployment(monkeypatch):
         **session_key,
         "session_code": "morning-run",
         "session_date": date(2026, 5, 1),
+        "task_name": None,
+        "experimenter_name": None,
     }
     write.assert_called_once_with(
         session_reg.SessionRowMeta,

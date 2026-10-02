@@ -89,6 +89,8 @@ def register_session(
             "session_id": existing["session_id"] if existing else new_id(),
             "session_code": code,
             "session_date": session_date,
+            "task_name": None,  # FIXME @deruyter92 2026-10-02: VERIFY hash needs explicit null
+            "experimenter_name": None,
             **(task or {}),
             **(experimenter or {}),
         }
