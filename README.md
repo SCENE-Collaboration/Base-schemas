@@ -114,7 +114,7 @@ detecting changed content:
 | ``REJECT`` (default for ``ensure_*``) | raise ``ValueError`` |
 | ``SKIP`` | leave row and stamp untouched |
 | ``VERIFY`` (default for ``register_*``) | leave untouched when the stamp hash matches; raise when it differs or no stamp exists |
-| ``UPDATE`` | ``update1`` the row and its stamp (sessions: also their subject links); warn when the hash changed |
+| ``OVERWRITE`` | overwrite the row in place as an insert would store it (omitted fields reset to their default), and its stamp (sessions: also their subject links); warn when the hash changed |
 
 ```python
 from base_schemas.ingestion.admin import ensure_lab

@@ -63,7 +63,7 @@ def register_session(
         deployment: Optional deployment row to stamp with. If omitted, built
             from ``SCENE_DEPLOYMENT_ID`` / ``SCENE_DEPLOYMENT_LABEL``.
         if_exists: Policy when ``session_code`` is already registered in
-            ``lab``; see ``DuplicatePolicy``. ``UPDATE`` also replaces the
+            ``lab``; see ``DuplicatePolicy``. ``OVERWRITE`` also replaces the
             subject links.
 
     Returns:
@@ -89,8 +89,6 @@ def register_session(
             "session_id": existing["session_id"] if existing else new_id(),
             "session_code": code,
             "session_date": session_date,
-            "task_name": None,  # FIXME @deruyter92 2026-10-02: VERIFY hash needs explicit null
-            "experimenter_name": None,
             **(task or {}),
             **(experimenter or {}),
         }

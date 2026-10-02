@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import warnings
 from contextlib import contextmanager
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -51,9 +52,10 @@ class _FakeConnection:
 class _FakeTable:
     """In-memory stand-in for the DataJoint table surface used by insert_tracked_row."""
 
-    def __init__(self, name, primary_key, rows=(), connection=None):
+    def __init__(self, name, primary_key, rows=(), connection=None, secondary=()):
         self.__name__ = name
         self.primary_key = list(primary_key)
+        self.heading = SimpleNamespace(secondary_attributes=list(secondary))
         self.rows = {self.key_of(row): dict(row) for row in rows}
         self.calls = []
         self.connection = connection or _FakeConnection()
@@ -131,7 +133,9 @@ def deployment_table():
 
 
 def _tables(*, lab_exists: bool, stamp: dict | None = None):
-    lab = _FakeTable("Lab", ["lab_id"], [_LAB] if lab_exists else ())
+    lab = _FakeTable(
+        "Lab", ["lab_id"], [_LAB] if lab_exists else (), secondary=["lab_name", "institution"]
+    )
     meta = _FakeMeta(lab, [stamp] if stamp else ())
     return lab, meta
 
@@ -215,12 +219,12 @@ def test_verify_raises_when_stamp_is_missing(deployment_table):
         _insert(meta, DuplicatePolicy.VERIFY)
 
 
-def test_update_updates_row_and_stamp_without_warning_when_hash_matches(deployment_table):
+def test_overwrite_updates_row_and_stamp_without_warning_when_hash_matches(deployment_table):
     lab, meta = _tables(lab_exists=True, stamp=_stamp())
 
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
-        assert _insert(meta, DuplicatePolicy.UPDATE) == _LAB_KEY
+        assert _insert(meta, DuplicatePolicy.OVERWRITE) == _LAB_KEY
 
     assert [name for name, _ in lab.calls] == ["update1"]
     assert [name for name, _ in meta.calls] == ["update1"]
@@ -230,24 +234,33 @@ def test_update_updates_row_and_stamp_without_warning_when_hash_matches(deployme
     assert deployment_table.rows[("dep1",)] == _DEPLOYMENT
 
 
-def test_update_warns_and_updates_when_hash_differs(deployment_table):
+def test_overwrite_warns_and_updates_when_hash_differs(deployment_table):
     lab, meta = _tables(lab_exists=True, stamp=_stamp())
     new_row = {**_LAB, "lab_name": "Renamed"}
     new_payload = {**_PAYLOAD, "lab_name": "Renamed"}
 
     with pytest.warns(UserWarning, match="content hash changed"):
-        _insert(meta, DuplicatePolicy.UPDATE, row=new_row, payload=new_payload)
+        _insert(meta, DuplicatePolicy.OVERWRITE, row=new_row, payload=new_payload)
 
     assert lab.rows[("mlai",)]["lab_name"] == "Renamed"
     assert meta.rows[("mlai",)]["content_hash"] == content_hash(new_payload)
 
 
-def test_update_inserts_stamp_when_missing(deployment_table):
+def test_overwrite_resets_omitted_fields_to_their_default(deployment_table):
+    """OVERWRITE stores the row as an insert would: update1 resets None to the default."""
+    lab, meta = _tables(lab_exists=True, stamp=_stamp())
+    _insert(meta, DuplicatePolicy.OVERWRITE, row={"lab_id": "mlai", "lab_name": "Mathis Lab"})
+    assert lab.calls == [
+        ("update1", {"lab_id": "mlai", "lab_name": "Mathis Lab", "institution": None})
+    ]
+
+
+def test_overwrite_inserts_stamp_when_missing(deployment_table):
     lab, meta = _tables(lab_exists=True)
 
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
-        _insert(meta, DuplicatePolicy.UPDATE)
+        _insert(meta, DuplicatePolicy.OVERWRITE)
 
     assert [name for name, _ in lab.calls] == ["update1"]
     assert [name for name, _ in meta.calls] == ["insert1"]
@@ -267,11 +280,11 @@ def test_parts_are_inserted_with_a_new_row(deployment_table):
     assert part.rows == [{**_LAB_KEY, "member": "a"}, {**_LAB_KEY, "member": "b"}]
 
 
-def test_update_replaces_parts_of_this_row_only(deployment_table):
+def test_overwrite_replaces_parts_of_this_row_only(deployment_table):
     _, meta = _tables(lab_exists=True, stamp=_stamp())
     other = {"lab_id": "other", "member": "x"}
     part = _FakePart([{**_LAB_KEY, "member": "old"}, other])
-    _insert(meta, DuplicatePolicy.UPDATE, parts={part: [{"member": "new"}]})
+    _insert(meta, DuplicatePolicy.OVERWRITE, parts={part: [{"member": "new"}]})
     assert part.rows == [other, {**_LAB_KEY, "member": "new"}]
 
 

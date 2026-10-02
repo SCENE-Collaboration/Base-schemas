@@ -178,13 +178,13 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     with pytest.raises(ValueError, match="different content hash"):
         register_session("morning-run", dt.date(2026, 5, 2), lab=lab_key)
 
-    # UPDATE keeps the id, rewrites the row and stamp, and replaces the subject links.
+    # OVERWRITE keeps the id, rewrites the row and stamp, and replaces the subject links.
     with pytest.warns(UserWarning, match="content hash changed"):
         updated = register_session(
             "morning-run",
             dt.date(2026, 5, 2),
             lab=lab_key,
-            if_exists=DuplicatePolicy.UPDATE,
+            if_exists=DuplicatePolicy.OVERWRITE,
         )
     assert updated == key
     assert (Session & key).fetch1("session_date") == dt.date(2026, 5, 2)
@@ -225,9 +225,9 @@ def test_ensure_lab_duplicate_policy_roundtrip(dj_connection, monkeypatch):
     assert ensure_lab(renamed, if_exists=DuplicatePolicy.SKIP) == lab_key
     assert (Lab & lab_key).fetch1("lab_name") == "Policy Lab"
 
-    # UPDATE must go through update1: REPLACE INTO would trip the LabRowMeta -> Lab FK.
+    # OVERWRITE must go through update1: REPLACE INTO would trip the LabRowMeta -> Lab FK.
     with pytest.warns(UserWarning, match="content hash changed"):
-        ensure_lab(renamed, if_exists=DuplicatePolicy.UPDATE)
+        ensure_lab(renamed, if_exists=DuplicatePolicy.OVERWRITE)
     assert (Lab & lab_key).fetch1("lab_name") == "Renamed Lab"
     assert (LabRowMeta & lab_key).fetch1("content_hash") == content_hash(lab_meta_payload(renamed))
     assert len(LabRowMeta & lab_key) == 1

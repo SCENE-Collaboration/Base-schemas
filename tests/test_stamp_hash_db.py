@@ -20,17 +20,8 @@ pytestmark = [
 ]
 
 
-# --- Known hashing issues (FIXME). The stamp's content_hash is computed from the
-# insert dict, not from the row as stored.
-
-
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="FIXME: an UPDATE that omits a nullable field keeps its stored value, "
-    "but the stamp hashes the field as NULL",
-)
-def test_stamp_matches_stored_row_after_update_omitting_nullable_field(dj_connection):
+def test_overwrite_resets_omitted_nullable_field_and_stamp_matches(dj_connection):
+    """OVERWRITE stores the row as an insert would, so the stamp matches the stored row."""
     from base_schemas.core.hash import content_hash
     from base_schemas.ingestion.provenance import DuplicatePolicy, insert_tracked_row
     from base_schemas.ingestion.register.session import session_meta_payload
@@ -53,20 +44,24 @@ def test_stamp_matches_stored_row_after_update_omitting_nullable_field(dj_connec
         deployment=deployment,
         if_exists=DuplicatePolicy.REJECT,
     )
-    with pytest.warns(UserWarning):  # task_name omitted: hash changes, stored row does not
+    with pytest.warns(UserWarning, match="content hash changed"):
         insert_tracked_row(
             SessionRowMeta,
-            session,
+            session,  # task_name omitted
             payload=session_meta_payload(session),
             deployment=deployment,
-            if_exists=DuplicatePolicy.UPDATE,
+            if_exists=DuplicatePolicy.OVERWRITE,
         )
 
     stored = (Session & key).fetch1()
-    assert stored["task_name"] == "nul_task"
+    assert stored["task_name"] is None
     assert (SessionRowMeta & key).fetch1("content_hash") == content_hash(
         session_meta_payload(stored)
     )
+
+
+# --- Known hashing issues (FIXME). The stamp's content_hash is computed from the
+# insert dict, not from the row as stored.
 
 
 _PRE_COERCION = (

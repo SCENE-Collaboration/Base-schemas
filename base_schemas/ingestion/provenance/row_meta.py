@@ -31,14 +31,14 @@ class DuplicatePolicy(str, enum.Enum):
         SKIP: Leave the stored row and its stamp untouched.
         VERIFY: Leave the stored row untouched when the stamp hash matches
             ``payload``; raise ``ValueError`` when it differs or no stamp exists.
-        UPDATE: Update the row (and replace the given parts) and its stamp;
-            warn when the hash changed.
+        OVERWRITE: Overwrite the row and it's stamp. Warns when the hash changed.
+            Omitted optional fields are reset to their default.
     """
 
     REJECT = "reject"
     SKIP = "skip"
     VERIFY = "verify"
-    UPDATE = "update"
+    OVERWRITE = "overwrite"
 
 
 def insert_tracked_row(
@@ -55,7 +55,7 @@ def insert_tracked_row(
 
     A new primary key is inserted and stamped. An existing primary key is
     handled by ``if_exists``. ``parts`` are written whenever the row is: inserted
-    with a new row, replaced on ``UPDATE``, and left untouched otherwise. The
+    with a new row, replaced on ``OVERWRITE``, and left untouched otherwise. The
     ``Deployment`` row is inserted when missing. All statements run atomically:
     inside the caller's open transaction when there is one, otherwise in a
     transaction opened here.
@@ -111,7 +111,9 @@ def insert_tracked_row(
             return row_key
 
         _ensure_deployment(deployment)
-        tracked_table.update1(row)
+        # Complement ``row`` with all omitted optional fields set to their default values.
+        full_row = {**dict.fromkeys(tracked_table.heading.secondary_attributes), **row}
+        tracked_table.update1(full_row)
         for part_table in parts or {}:
             (part_table & row_key).delete_quick()
         _insert_parts(parts, row_key)
@@ -174,9 +176,9 @@ def _resolve_duplicate(
         if stored_hash != new_hash:
             raise ValueError(f"{label} is already registered with a different content hash")
         return False
-    if if_exists is DuplicatePolicy.UPDATE:
+    if if_exists is DuplicatePolicy.OVERWRITE:
         if stored_hash is not None and stored_hash != new_hash:
             # stacklevel: warn -> here -> insert_tracked_row -> helper -> caller
-            warnings.warn(f"{label} content hash changed; updating", UserWarning, stacklevel=4)
+            warnings.warn(f"{label} content hash changed; overwriting", UserWarning, stacklevel=4)
         return True
     raise ValueError(f"unknown DuplicatePolicy {if_exists!r}")
