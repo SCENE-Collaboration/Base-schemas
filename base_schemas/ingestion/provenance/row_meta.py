@@ -13,6 +13,7 @@ import datajoint as dj
 from base_schemas.core.db import atomic
 from base_schemas.core.hash import content_hash
 from base_schemas.core.types import DjKey, DjRow
+from base_schemas.core.versioning import assert_database_compatible
 from base_schemas.ingestion.provenance.ingestion_version import SCENE_WRITER_VERSION
 from base_schemas.schemas.provenance.deployment import Deployment
 from base_schemas.schemas.provenance.row_meta import RowMetaBase
@@ -76,8 +77,12 @@ def insert_tracked_row(
 
     Raises:
         ValueError: When ``if_exists`` rejects the existing row.
+        SchemaVersionError: When a written database's schema version does not
+            match the installed code (checked once per database and process).
     """
     tracked_table = row_meta_table.tracked_table
+    for table in (tracked_table, row_meta_table):
+        assert_database_compatible(table.database)
     row_key = row_meta_table.tracked_key(row)
     stamp = {
         **row_key,

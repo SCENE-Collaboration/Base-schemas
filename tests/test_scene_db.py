@@ -294,16 +294,19 @@ def test_ensure_schema_version_idempotent_then_assert(dj_connection):
     assert assert_schema_compatible(SCENE_SCHEMA_VERSION, SchemaVersion) == (SCENE_SCHEMA_VERSION)
 
 
-def test_assert_schema_compatible_mismatch_against_live_db(dj_connection):
+def test_assert_schema_compatible_mismatch_against_live_db(dj_connection, monkeypatch):
+    from base_schemas.core import versioning
     from base_schemas.core.versioning import (
         SchemaVersionError,
         assert_schema_compatible,
         ensure_schema_version,
     )
+    from base_schemas.ingestion.admin import ensure_lab
     from base_schemas.schemas.scene._schema import (
         SCENE_SCHEMA_VERSION,
         SchemaVersion,
     )
+    from base_schemas.schemas.scene.lab import Lab
 
     _clear_schema_version_test_rows(SchemaVersion)
     ensure_schema_version(SCENE_SCHEMA_VERSION, SchemaVersion, notes="test-init")
@@ -321,5 +324,13 @@ def test_assert_schema_compatible_mismatch_against_live_db(dj_connection):
         )
         with pytest.raises(SchemaVersionError, match="mismatch"):
             assert_schema_compatible(SCENE_SCHEMA_VERSION, SchemaVersion)
+
+        # The write path refuses to write into a database with another version
+        # (the per-process check cache is reset so this test does not depend on order).
+        monkeypatch.setattr(versioning, "_COMPATIBLE_DATABASES", set())
+        monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "test-local")
+        with pytest.raises(SchemaVersionError, match="mismatch"):
+            ensure_lab({"lab_id": "verlab", "lab_name": "Version Lab"})
+        assert not (Lab & {"lab_id": "verlab"})
     finally:
         _clear_schema_version_test_rows(SchemaVersion)

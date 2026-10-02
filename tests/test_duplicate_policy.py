@@ -57,6 +57,7 @@ class _FakeTable:
         self.rows = {self.key_of(row): dict(row) for row in rows}
         self.calls = []
         self.connection = connection or _FakeConnection()
+        self.database = "fake_db"
 
     def key_of(self, row):
         return tuple(row[name] for name in self.primary_key)
@@ -114,6 +115,12 @@ def _stamp(payload=_PAYLOAD, **overrides):
         "content_hash": content_hash(payload),
         **overrides,
     }
+
+
+@pytest.fixture(autouse=True)
+def no_version_check(monkeypatch):
+    """The fake tables have no database; the version check is tested in test_schema_version."""
+    monkeypatch.setattr(row_meta_mod, "assert_database_compatible", lambda database: None)
 
 
 @pytest.fixture
