@@ -7,59 +7,146 @@ Current package schemas (placeholders; definitions may change):
 
 - `base_schemas.schemas.scene.lab` — `Lab`
 - `base_schemas.schemas.scene.subject` — `SubjectKind`, `Subject`
-- `base_schemas.schemas.scene.task` — `Task`
+- `base_schemas.schemas.scene.project` — `Project`
 - `base_schemas.schemas.scene.session` — `Experimenter`, `Session`
 - `base_schemas.schemas.provenance.deployment` — `Deployment`
-- `base_schemas.schemas.provenance.row_meta` — `SessionRowMeta`
+- `base_schemas.schemas.provenance.row_meta` — `LabRowMeta`, `ProjectRowMeta`,
+  `SubjectRowMeta`, `SessionRowMeta` (one stamp per tracked row: deployment,
+  writer version, content hash)
 
 Also included:
 
 - `base_schemas.scripts.sync` — copy table rows between servers
 - `base_schemas.ingestion` — supported write path (`register_session`, …);
-- `base_schemas.admin` — catalog ensures (`ensure_lab`, `ensure_task`; admin DB role);
+- `base_schemas.ingestion.admin` — catalog ensures (`ensure_lab`, `ensure_project`; admin DB role);
 
-### Register subjects and sessions
+## Inserting rows
 
-``Lab`` / ``Task`` are admin catalog tables — create with ``ensure_lab`` /
-``ensure_task`` (admin DB role). ``Experimenter`` is still a shared lookup;
-seed it directly or via a future admin helper. Subjects are everyday writes:
+Write through the helpers in ``base_schemas.ingestion`` rather than calling
+``insert1`` directly. Every helper writes the row and a row-meta stamp
+(``LabRowMeta``, ``SessionRowMeta``, …) that records which deployment wrote
+it, the ``SCENE_WRITER_VERSION``, and a ``content_hash`` of the row's content.
+The stamps are what later lets rows be compared and synced between databases.
 
-- ``register_subject`` — insert a subject row, return its key
-- ``register_session`` — link **existing** subject keys (may be empty)
-- ``register_session_with_new_subjects`` — insert subject rows, then register
-  the session (one transaction)
+### Deployment id and label
 
-Set ``SCENE_DEPLOYMENT_ID`` once (optional ``SCENE_DEPLOYMENT_LABEL``).
-``session_id`` is always minted (UUID4 hex).
+Set ``SCENE_DEPLOYMENT_ID`` once per database (optional
+``SCENE_DEPLOYMENT_LABEL``). The helpers read it when ``deployment`` is not
+passed explicitly, and insert the matching ``Deployment`` row on first use.
+
+The id is a stable, opaque token: pick a short slug that names the lab and the
+role of the database, e.g. ``mlai-prod`` for the production database of the
+Mathis Lab of Adaptive Intelligence, or ``mlai-dev-jaap`` for a private
+development copy. Do not derive it from a hostname or the schema prefix; those
+may change, the id must not. The label is free text for humans. It is stored
+by the first write and should not be changed later (ignored with a warning).
+
+### Admin catalog tables
+
+``Lab`` and ``Project`` are catalog tables shared across the collaboration. They
+are marked ``SyncAuthority.CENTRAL`` and ``WriteRole.ADMIN`` (acquisition
+accounts SELECT only) and are created with the helpers in
+``base_schemas.ingestion.admin``:
+
+- ``ensure_lab`` — insert a lab row, return its key
+- ``ensure_project`` — insert a project row, return its key
+
+``Experimenter`` is still a plain shared lookup; seed it directly.
+
+### Pipeline writes
+
+``Subject`` and ``Session`` are everyday writes, marked ``WriteRole.ACQUISITION``
+(acquisition accounts only). They are inserted locally by one team and later
+shared with the consortium. Helpers live in ``base_schemas.ingestion``:
+
+- ``register_subject`` — register a subject by code, return its key
+- ``register_session`` — register a session by code, linking **existing**
+  subject keys (may be empty)
+
+Subjects and sessions are identified by a code the lab chooses
+(``subject_code``, ``session_code``), unique within the lab. The globally
+unique ``subject_id`` / ``session_id`` is minted by the helper (UUID4 hex) the
+first time a code is registered. Registering the same code again reuses the
+stored id, so re-running an ingestion does not create duplicates.
+
+Codes are shared with the consortium, so they must be **pseudonyms**: never a
+real name, initials, birth date or other identifying information. The helpers
+accept only ASCII letters, digits, ``.``, ``_`` and ``-`` (no spaces), which
+rejects free-text names but cannot catch every identifying code.
 
 ```python
 from datetime import date
-from base_schemas.ingestion import (
-    new_subject_id,
-    register_session,
-    register_session_with_new_subjects,
-    register_subject,
-)
+from base_schemas.ingestion import register_session, register_subject
 
-# Existing subjects only:
+lab = {"lab_id": "mlai"}
+subject = register_subject("mouse-042", "mouse", lab=lab)
 register_session(
     "mousear-session-015",
     date(2026, 5, 1),
-    lab={"lab_id": "mlai"},
-    subjects=[{"subject_id": "a" * 32}],
-    task={"task_name": "gaze_v1"},
-)
-
-# Create subjects + session together:
-register_session_with_new_subjects(
-    "mousear-session-016",
-    date(2026, 5, 2),
-    lab={"lab_id": "mlai"},
-    subjects=[
-        {"subject_id": new_subject_id(), "subject_kind": "mouse"},
-    ],
+    lab=lab,
+    subjects=[subject],
+    project={"project_name": "gaze_v1"},
 )
 ```
+
+Each helper is atomic and joins a transaction that is already open. To make
+several registrations all-or-nothing, wrap them in ``atomic``:
+
+```python
+from base_schemas.core import atomic
+from base_schemas.schemas.scene.session import Session
+
+with atomic(Session.connection):
+    subjects = [register_subject(code, "mouse", lab=lab) for code in ("mouse-043", "mouse-044")]
+    register_session("mousear-session-016", date(2026, 5, 2), lab=lab, subjects=subjects)
+```
+
+### Registering an existing entry again
+
+The helpers take ``if_exists: DuplicatePolicy`` to control what happens when
+the entry already exists (same primary key for ``ensure_*``, same code within
+the lab for ``register_*``). Unlike DataJoint's ``skip_duplicates`` /
+``replace``, this policy compares the ``content_hash`` in the stored stamp,
+detecting changed content:
+
+| Policy | When the entry already exists |
+|--------|-------------------------------|
+| ``REJECT`` (default for ``ensure_*``) | raise ``ValueError`` |
+| ``SKIP`` | leave row and stamp untouched |
+| ``VERIFY`` (default for ``register_*``) | leave untouched when the stamp hash matches; raise when it differs or no stamp exists |
+| ``OVERWRITE`` | overwrite the row in place as an insert would store it (omitted fields reset to their default), and its stamp (sessions: also their subject links); warn when the hash changed |
+
+```python
+from base_schemas.ingestion.admin import ensure_lab
+from base_schemas.ingestion.provenance import DuplicatePolicy
+
+ensure_lab({"lab_id": "mlai", "lab_name": "Mathis Lab"}, if_exists=DuplicatePolicy.VERIFY)
+```
+
+### Design rule: one transaction per write
+
+A function that writes to more than one table performs all of its writes
+inside a single transaction (``atomic``). Nothing else happens inside it: no
+file reading, no computation, no schema activation. Read and validate the
+input first, then write. This keeps a failed write from leaving partial rows,
+and keeps transactions (and their locks) short. The insertion helpers follow
+this rule; ingestion code built on them (e.g. a manifest loader) should too.
+
+## Table markers
+
+Two optional markers record intent; they enforce nothing. Read them with
+``sync_authority_of`` and ``write_role_of``.
+
+``SyncAuthority`` names which database holds the truth: ``CENTRAL`` (consortium
+catalogs; central database has authority), ``ORIGIN`` (the site that acquired the
+data has authority), ``SHARED`` (append-only, either direction inserts and never
+overwrites).
+
+``WriteRole`` restricts INSERT: ``ADMIN`` or ``ACQUISITION``, and a marker
+admits only that role. No marker means unrestricted. ``Lab`` and ``Project`` are
+``ADMIN``; ``Subject`` and ``Session`` are ``ACQUISITION``. A part follows its
+master and a row-meta table follows the table it tracks, so those need no
+marker of their own. Lab-defined tables need none either.
 
 ## Schema activation
 
@@ -89,8 +176,8 @@ SCENE_REGISTRY.get("scene") is schema
 |----------|---------|
 | `DJ_SCHEMA_PREFIX` | Prefix for DB names (include trailing `_`) |
 | `AUTO_ACTIVATE` | If truthy, `make_schema` / Lab / Session bind on import |
-| `SCENE_DEPLOYMENT_ID` | Default deployment stamp for `register_session` |
-| `SCENE_DEPLOYMENT_LABEL` | Optional label when using the env default |
+| `SCENE_DEPLOYMENT_ID` | Stable id of this database; default `deployment` for all insertion helpers |
+| `SCENE_DEPLOYMENT_LABEL` | Optional human label stored on `Deployment` with the env default |
 
 ## Installation
 

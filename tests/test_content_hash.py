@@ -18,10 +18,10 @@ def test_content_hash_key_order_independent():
 def test_content_hash_changes_with_payload():
     base = {
         "session_date": str(date(2026, 1, 15)),
-        "task_name": "gaze",
+        "project_name": "gaze",
         "subject_ids": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
     }
-    assert content_hash(base) != content_hash({**base, "task_name": "reach"})
+    assert content_hash(base) != content_hash({**base, "project_name": "reach"})
     assert content_hash(base) != content_hash(
         {**base, "subject_ids": ["bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"]}
     )

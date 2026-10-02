@@ -42,6 +42,10 @@ class SchemaVersionStatus:
         return self.db_version == self.expected_version
 
 
+_VERSION_TABLES: list[type[SchemaVersionTable]] = []  # every SchemaVersionTable subclass
+_COMPATIBLE_DATABASES: set[str] = set()  # databases already checked in this process
+
+
 class SchemaVersionTable(dj.Manual):
     """Base for a schema's ``SchemaVersion`` table (subclass it; do not decorate this).
 
@@ -54,6 +58,10 @@ class SchemaVersionTable(dj.Manual):
     """
 
     code_version: ClassVar[str]
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        _VERSION_TABLES.append(cls)
 
     definition = """
     version: varchar(32)  # schema definition version, e.g. 0.2.0
@@ -74,6 +82,23 @@ class SchemaVersionTable(dj.Manual):
             },
             skip_duplicates=True,
         )
+
+
+def assert_database_compatible(database: str) -> None:
+    """Check ``database``'s recorded schema version against the code, once per process.
+
+    Uses the ``SchemaVersionTable`` bound to ``database``; a database without
+    one (e.g. a lab's own schema) is not checked.
+
+    Raises:
+        SchemaVersionError: If the recorded version is missing or differs.
+    """
+    if database in _COMPATIBLE_DATABASES:
+        return
+    for version_table in _VERSION_TABLES:
+        if version_table.database == database:
+            assert_schema_compatible(version_table.code_version, version_table)
+    _COMPATIBLE_DATABASES.add(database)
 
 
 def get_db_schema_version(version_table: type[dj.Manual]) -> str | None:

@@ -1,184 +1,102 @@
-"""Register a Session from existing keys (+ Deployment + SessionRowMeta)."""
+"""Register a Session by lab code (+ Deployment + SessionRowMeta)."""
 
 from __future__ import annotations
 
-import uuid
 from collections.abc import Sequence
 from datetime import date
+from typing import Any
 
-from base_schemas.core.config import load_settings
+from base_schemas.core.config import deployment_row_from_settings
+from base_schemas.core.db import atomic, lookup_key, new_id
 from base_schemas.core.types import DjKey, DjRow
-from base_schemas.ingestion.register.session_meta import upsert_session_row_meta
-from base_schemas.ingestion.register.subject import register_subject
+from base_schemas.ingestion.normalization.code import normalize_code
+from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy, insert_tracked_row
 from base_schemas.schemas.provenance.deployment import Deployment
+from base_schemas.schemas.provenance.row_meta import SessionRowMeta
 from base_schemas.schemas.scene.lab import Lab
+from base_schemas.schemas.scene.project import Project
 from base_schemas.schemas.scene.session import Experimenter, Session
 from base_schemas.schemas.scene.subject import Subject
-from base_schemas.schemas.scene.task import Task
 
 
-def new_session_id() -> str:
-    """Return a new opaque ``session_id`` (UUID4 hex, 32 chars)."""
-    return uuid.uuid4().hex
-
-
-def _build_deployment_row_from_settings() -> DjRow[Deployment]:
-    """Build a deployment row from Settings."""
-    settings = load_settings()
-    if not settings.deployment_id:
-        raise ValueError("deployment is required: pass deployment={...} or set SCENE_DEPLOYMENT_ID")
+def session_meta_payload(
+    session: dict[str, Any],
+    subject_ids: Sequence[str] = (),
+) -> dict[str, Any]:
+    """Non-key session fields + subjects that should affect ``content_hash``."""
     return {
-        "deployment_id": settings.deployment_id,
-        "label": settings.deployment_label,
+        "session_date": str(session["session_date"]),
+        "session_code": session["session_code"],
+        "project_name": session.get("project_name"),
+        "experimenter_name": session.get("experimenter_name"),
+        "subject_ids": list(subject_ids),
     }
-
-
-def _insert_session_bundle(
-    *,
-    lab: DjKey[Lab],
-    name: str,
-    session_date: date,
-    subjects: Sequence[DjKey[Subject]],
-    task: DjKey[Task] | None,
-    experimenter: DjKey[Experimenter] | None,
-    deployment_row: DjRow[Deployment],
-    skip_duplicates: bool,
-) -> DjKey[Session]:
-    """Write Deployment + Session + Subject links + row meta (caller owns txn)."""
-    deployment_key: DjKey[Deployment] = {k: deployment_row[k] for k in Deployment.primary_key}
-    subject_ids = [s["subject_id"] for s in subjects]
-    session_id = new_session_id()
-    session = {
-        **lab,
-        "session_id": session_id,
-        "session_name": name,
-        "session_date": session_date,
-        **(task or {}),
-        **(experimenter or {}),
-    }
-    session_key: DjKey[Session] = {**lab, "session_id": session_id}
-
-    Deployment.insert1(deployment_row, skip_duplicates=skip_duplicates)
-    Session.insert1(session, skip_duplicates=skip_duplicates)
-    if subject_ids:
-        Session.Subject.insert(
-            [{**session_key, "subject_id": sid} for sid in subject_ids],
-            skip_duplicates=skip_duplicates,
-        )
-    upsert_session_row_meta(
-        session_key,
-        session,
-        deployment_key=deployment_key,
-        subject_ids=subject_ids,
-    )
-    return session_key
 
 
 def register_session(
-    session_name: str,
+    session_code: str,
     session_date: date,
     *,
     lab: DjKey[Lab],
     subjects: Sequence[DjKey[Subject]] = (),
-    task: DjKey[Task] | None = None,
+    project: DjKey[Project] | None = None,
     experimenter: DjKey[Experimenter] | None = None,
     deployment: DjRow[Deployment] | None = None,
-    skip_duplicates: bool = True,
+    if_exists: DuplicatePolicy = DuplicatePolicy.VERIFY,
 ) -> DjKey[Session]:
-    """Insert a session (and link optional subjects) with deployment provenance.
+    """Register a session by its lab code; mint ``session_id`` when new.
 
-    Catalog keys (``lab``, ``subjects``, ``task``, ``experimenter``) must already
-    exist; this helper does not create them. ``session_id`` is minted. Writes run
-    in one transaction.
+    The session is looked up by ``(lab, session_code)``. A new code gets a
+    freshly minted ``session_id``; an existing code is handled by ``if_exists``
+    against the stored session (its hash covers the linked subjects). Catalog
+    keys (``lab``, ``subjects``, ``project``, ``experimenter``) must already exist.
+    Runs atomically; joins the caller's transaction when one is open.
 
     Args:
-        session_name: User-facing session label (non-empty after strip).
+        session_code: Pseudonymous code, unique within ``lab``; see
+            ``normalize_code``. Never a real name.
         session_date: Calendar date of the session.
         lab: Existing lab primary key, e.g. ``{"lab_id": "mlai"}``.
         subjects: Existing subject keys (may be empty).
-        task: Optional existing task key.
+        project: Optional existing project key.
         experimenter: Optional existing experimenter key.
-        deployment: Optional deployment row to insert. If omitted, built from
-            ``SCENE_DEPLOYMENT_ID`` / ``SCENE_DEPLOYMENT_LABEL``.
-        skip_duplicates: Forwarded to DataJoint inserts.
+        deployment: Optional deployment row to stamp with. If omitted, built
+            from ``SCENE_DEPLOYMENT_ID`` / ``SCENE_DEPLOYMENT_LABEL``.
+        if_exists: Policy when ``session_code`` is already registered in
+            ``lab``; see ``DuplicatePolicy``. ``OVERWRITE`` also replaces the
+            subject links.
 
     Returns:
         Session primary key ``{lab_id, session_id}``.
 
     Raises:
-        ValueError: If ``session_name`` is empty, or ``deployment`` is omitted
-            and ``SCENE_DEPLOYMENT_ID`` is unset.
+        ValueError: If ``session_code`` is not a valid code, ``deployment`` is omitted
+            and ``SCENE_DEPLOYMENT_ID`` is unset, or ``if_exists`` rejects the
+            existing session.
     """
-    name = session_name.strip()
-    if not name:
-        raise ValueError("session_name must be a non-empty string")
+    code = normalize_code(session_code, field="session_code", max_length=128)
 
-    deployment_row = deployment if deployment is not None else _build_deployment_row_from_settings()
+    deployment_row = deployment if deployment is not None else deployment_row_from_settings()
 
-    with Session.connection.transaction:
-        return _insert_session_bundle(
-            lab=lab,
-            name=name,
-            session_date=session_date,
-            subjects=subjects,
-            task=task,
-            experimenter=experimenter,
-            deployment_row=deployment_row,
-            skip_duplicates=skip_duplicates,
-        )
+    subject_ids = [s["subject_id"] for s in subjects]
 
-
-def register_session_with_new_subjects(
-    session_name: str,
-    session_date: date,
-    *,
-    lab: DjKey[Lab],
-    subjects: Sequence[DjRow[Subject]],
-    task: DjKey[Task] | None = None,
-    experimenter: DjKey[Experimenter] | None = None,
-    deployment: DjRow[Deployment] | None = None,
-    skip_duplicates: bool = True,
-) -> DjKey[Session]:
-    """Insert subject rows, then register a session linking them (one transaction).
-
-    ``subjects`` must be full insert dicts (not keys only). Existing primary keys
-    are left unchanged when ``skip_duplicates`` is true (attributes are not
-    updated). ``lab`` / ``task`` / ``experimenter`` remain existing keys only.
-
-    Args:
-        session_name: User-facing session label (non-empty after strip).
-        session_date: Calendar date of the session.
-        lab: Existing lab primary key.
-        subjects: Subject insert rows (``subject_id``, ``subject_kind``, …).
-        task: Optional existing task key.
-        experimenter: Optional existing experimenter key.
-        deployment: Optional deployment row; else from settings env vars.
-        skip_duplicates: Forwarded to DataJoint inserts.
-
-    Returns:
-        Session primary key ``{lab_id, session_id}``.
-
-    Raises:
-        ValueError: If ``session_name`` is empty, ``subjects`` is empty, or
-            ``deployment`` is omitted and ``SCENE_DEPLOYMENT_ID`` is unset.
-    """
-    name = session_name.strip()
-    if not name:
-        raise ValueError("session_name must be a non-empty string")
-    if not subjects:
-        raise ValueError("subjects must be a non-empty sequence of subject rows")
-
-    deployment_row = deployment if deployment is not None else _build_deployment_row_from_settings()
-
-    with Session.connection.transaction:
-        subject_keys = [register_subject(row, skip_duplicates=skip_duplicates) for row in subjects]
-        return _insert_session_bundle(
-            lab=lab,
-            name=name,
-            session_date=session_date,
-            subjects=subject_keys,
-            task=task,
-            experimenter=experimenter,
-            deployment_row=deployment_row,
-            skip_duplicates=skip_duplicates,
+    with atomic(Session.connection):
+        # insert_tracked_row matches on the primary key, which is minted: resolve an
+        # existing code to its stored id first, so if_exists applies to re-registrations.
+        existing = lookup_key(Session, {**lab, "session_code": code})
+        session = {
+            **lab,
+            "session_id": existing["session_id"] if existing else new_id(),
+            "session_code": code,
+            "session_date": session_date,
+            **(project or {}),
+            **(experimenter or {}),
+        }
+        return insert_tracked_row(
+            SessionRowMeta,
+            session,
+            payload=session_meta_payload(session, subject_ids),
+            deployment=deployment_row,
+            if_exists=if_exists,
+            parts={Session.Subject: [{"subject_id": sid} for sid in subject_ids]},
         )
