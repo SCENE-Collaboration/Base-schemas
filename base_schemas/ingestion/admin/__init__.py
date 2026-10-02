@@ -1,10 +1,10 @@
-"""Admin catalog writes (Lab, Task, …).
+"""Admin catalog writes (Lab, Project, …).
 
 Pipeline roles should SELECT these tables only; use these helpers with an
-admin DB role. ``Lab`` and ``Task`` are marked ``WriteRole.ADMIN``.
+admin DB role. ``Lab`` and ``Project`` are marked ``WriteRole.ADMIN``.
 """
 
 from base_schemas.ingestion.admin.lab import ensure_lab
-from base_schemas.ingestion.admin.task import ensure_task
+from base_schemas.ingestion.admin.project import ensure_project
 
-__all__ = ["ensure_lab", "ensure_task"]
+__all__ = ["ensure_lab", "ensure_project"]

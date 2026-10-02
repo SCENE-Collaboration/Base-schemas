@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from base_schemas.ingestion.admin import lab as lab_admin
-from base_schemas.ingestion.admin import task as task_admin
+from base_schemas.ingestion.admin import project as project_admin
 from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy
 
 
@@ -41,20 +41,20 @@ def test_ensure_lab_requires_deployment(monkeypatch):
         lab_admin.ensure_lab({"lab_id": "mlai"})
 
 
-def test_ensure_task_delegates_to_insert_tracked_row(monkeypatch):
+def test_ensure_project_delegates_to_insert_tracked_row(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
     monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "Env")
-    row = {"task_name": "gaze_v1", "task_title": "Gaze"}
+    row = {"project_name": "gaze_v1", "project_title": "Gaze"}
     with patch.object(
-        task_admin, "insert_tracked_row", return_value={"task_name": "gaze_v1"}
+        project_admin, "insert_tracked_row", return_value={"project_name": "gaze_v1"}
     ) as write:
-        key = task_admin.ensure_task(row)
+        key = project_admin.ensure_project(row)
 
-    assert key == {"task_name": "gaze_v1"}
+    assert key == {"project_name": "gaze_v1"}
     write.assert_called_once_with(
-        task_admin.TaskRowMeta,
+        project_admin.ProjectRowMeta,
         row,
-        payload={"task_title": "Gaze"},
+        payload={"project_title": "Gaze"},
         deployment={"deployment_id": "from-env", "label": "Env"},
         if_exists=DuplicatePolicy.REJECT,
     )

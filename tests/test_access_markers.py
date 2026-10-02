@@ -12,13 +12,13 @@ from base_schemas.core.access_markers import (
 from base_schemas.schemas.provenance.deployment import Deployment
 from base_schemas.schemas.provenance.row_meta import RowMetaBase
 from base_schemas.schemas.scene.lab import Lab
+from base_schemas.schemas.scene.project import Project
 from base_schemas.schemas.scene.session import Experimenter, Session
 from base_schemas.schemas.scene.subject import Subject, SubjectKind
-from base_schemas.schemas.scene.task import Task
 
 
 def test_catalogs_are_central_and_admin_only():
-    for table in (Lab, Task):
+    for table in (Lab, Project):
         assert sync_authority_of(table) is SyncAuthority.CENTRAL
         assert write_role_of(table) is WriteRole.ADMIN
 

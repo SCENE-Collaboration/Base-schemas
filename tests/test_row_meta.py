@@ -5,10 +5,10 @@ from __future__ import annotations
 import pytest
 from base_schemas.schemas.provenance.row_meta import (
     LabRowMeta,
+    ProjectRowMeta,
     RowMetaBase,
     SessionRowMeta,
     SubjectRowMeta,
-    TaskRowMeta,
 )
 
 _STAMP_COLUMNS = (
@@ -34,12 +34,12 @@ def test_row_meta_subclasses_match_tracked_masters() -> None:
     assert set(RowMetaBase.__subclasses__()) == {
         LabRowMeta,
         SubjectRowMeta,
-        TaskRowMeta,
+        ProjectRowMeta,
         SessionRowMeta,
     }
     assert LabRowMeta.tracked_table.__name__ == "Lab"
     assert SubjectRowMeta.tracked_table.__name__ == "Subject"
-    assert TaskRowMeta.tracked_table.__name__ == "Task"
+    assert ProjectRowMeta.tracked_table.__name__ == "Project"
     assert SessionRowMeta.tracked_table.__name__ == "Session"
 
 

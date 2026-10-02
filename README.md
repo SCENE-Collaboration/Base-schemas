@@ -7,10 +7,10 @@ Current package schemas (placeholders; definitions may change):
 
 - `base_schemas.schemas.scene.lab` — `Lab`
 - `base_schemas.schemas.scene.subject` — `SubjectKind`, `Subject`
-- `base_schemas.schemas.scene.task` — `Task`
+- `base_schemas.schemas.scene.project` — `Project`
 - `base_schemas.schemas.scene.session` — `Experimenter`, `Session`
 - `base_schemas.schemas.provenance.deployment` — `Deployment`
-- `base_schemas.schemas.provenance.row_meta` — `LabRowMeta`, `TaskRowMeta`,
+- `base_schemas.schemas.provenance.row_meta` — `LabRowMeta`, `ProjectRowMeta`,
   `SubjectRowMeta`, `SessionRowMeta` (one stamp per tracked row: deployment,
   writer version, content hash)
 
@@ -18,7 +18,7 @@ Also included:
 
 - `base_schemas.scripts.sync` — copy table rows between servers
 - `base_schemas.ingestion` — supported write path (`register_session`, …);
-- `base_schemas.ingestion.admin` — catalog ensures (`ensure_lab`, `ensure_task`; admin DB role);
+- `base_schemas.ingestion.admin` — catalog ensures (`ensure_lab`, `ensure_project`; admin DB role);
 
 ## Inserting rows
 
@@ -43,13 +43,13 @@ by the first write and should not be changed later (ignored with a warning).
 
 ### Admin catalog tables
 
-``Lab`` and ``Task`` are catalog tables shared across the collaboration. They
+``Lab`` and ``Project`` are catalog tables shared across the collaboration. They
 are marked ``SyncAuthority.CENTRAL`` and ``WriteRole.ADMIN`` (acquisition
 accounts SELECT only) and are created with the helpers in
 ``base_schemas.ingestion.admin``:
 
 - ``ensure_lab`` — insert a lab row, return its key
-- ``ensure_task`` — insert a task row, return its key
+- ``ensure_project`` — insert a project row, return its key
 
 ``Experimenter`` is still a plain shared lookup; seed it directly.
 
@@ -85,7 +85,7 @@ register_session(
     date(2026, 5, 1),
     lab=lab,
     subjects=[subject],
-    task={"task_name": "gaze_v1"},
+    project={"project_name": "gaze_v1"},
 )
 ```
 
@@ -143,7 +143,7 @@ data has authority), ``SHARED`` (append-only, either direction inserts and never
 overwrites).
 
 ``WriteRole`` restricts INSERT: ``ADMIN`` or ``ACQUISITION``, and a marker
-admits only that role. No marker means unrestricted. ``Lab`` and ``Task`` are
+admits only that role. No marker means unrestricted. ``Lab`` and ``Project`` are
 ``ADMIN``; ``Subject`` and ``Session`` are ``ACQUISITION``. A part follows its
 master and a row-meta table follows the table it tracks, so those need no
 marker of their own. Lab-defined tables need none either.

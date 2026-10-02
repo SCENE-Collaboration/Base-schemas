@@ -14,9 +14,9 @@ from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy, insert_t
 from base_schemas.schemas.provenance.deployment import Deployment
 from base_schemas.schemas.provenance.row_meta import SessionRowMeta
 from base_schemas.schemas.scene.lab import Lab
+from base_schemas.schemas.scene.project import Project
 from base_schemas.schemas.scene.session import Experimenter, Session
 from base_schemas.schemas.scene.subject import Subject
-from base_schemas.schemas.scene.task import Task
 
 
 def session_meta_payload(
@@ -27,7 +27,7 @@ def session_meta_payload(
     return {
         "session_date": str(session["session_date"]),
         "session_code": session["session_code"],
-        "task_name": session.get("task_name"),
+        "project_name": session.get("project_name"),
         "experimenter_name": session.get("experimenter_name"),
         "subject_ids": list(subject_ids),
     }
@@ -39,7 +39,7 @@ def register_session(
     *,
     lab: DjKey[Lab],
     subjects: Sequence[DjKey[Subject]] = (),
-    task: DjKey[Task] | None = None,
+    project: DjKey[Project] | None = None,
     experimenter: DjKey[Experimenter] | None = None,
     deployment: DjRow[Deployment] | None = None,
     if_exists: DuplicatePolicy = DuplicatePolicy.VERIFY,
@@ -49,7 +49,7 @@ def register_session(
     The session is looked up by ``(lab, session_code)``. A new code gets a
     freshly minted ``session_id``; an existing code is handled by ``if_exists``
     against the stored session (its hash covers the linked subjects). Catalog
-    keys (``lab``, ``subjects``, ``task``, ``experimenter``) must already exist.
+    keys (``lab``, ``subjects``, ``project``, ``experimenter``) must already exist.
     Runs atomically; joins the caller's transaction when one is open.
 
     Args:
@@ -58,7 +58,7 @@ def register_session(
         session_date: Calendar date of the session.
         lab: Existing lab primary key, e.g. ``{"lab_id": "mlai"}``.
         subjects: Existing subject keys (may be empty).
-        task: Optional existing task key.
+        project: Optional existing project key.
         experimenter: Optional existing experimenter key.
         deployment: Optional deployment row to stamp with. If omitted, built
             from ``SCENE_DEPLOYMENT_ID`` / ``SCENE_DEPLOYMENT_LABEL``.
@@ -89,7 +89,7 @@ def register_session(
             "session_id": existing["session_id"] if existing else new_id(),
             "session_code": code,
             "session_date": session_date,
-            **(task or {}),
+            **(project or {}),
             **(experimenter or {}),
         }
         return insert_tracked_row(

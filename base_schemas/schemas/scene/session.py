@@ -7,8 +7,8 @@ import datajoint as dj
 from base_schemas.core.access_markers import WriteRole, mark_write_role
 from base_schemas.schemas.scene._schema import schema
 from base_schemas.schemas.scene.lab import Lab  # noqa: F401  # FK: Session -> Lab
+from base_schemas.schemas.scene.project import Project  # noqa: F401
 from base_schemas.schemas.scene.subject import Subject  # noqa: F401
-from base_schemas.schemas.scene.task import Task  # noqa: F401
 
 
 @schema
@@ -39,7 +39,7 @@ class Session(dj.Manual):
     ---
     session_code: varchar(128)  # pseudonymous lab code; never a real name
     session_date: date
-    -> [nullable] Task
+    -> [nullable] Project
     -> [nullable] Experimenter
     unique index (lab_id, session_code)
     """

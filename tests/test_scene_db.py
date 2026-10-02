@@ -57,11 +57,11 @@ def test_lab_session_insert_roundtrip(dj_connection):
     ).fetch1("session_date") == dt.date(2026, 1, 15)
 
 
-def test_subject_task_and_multi_subject_session(dj_connection):
+def test_subject_project_and_multi_subject_session(dj_connection):
     from base_schemas.schemas.scene.lab import Lab
+    from base_schemas.schemas.scene.project import Project
     from base_schemas.schemas.scene.session import Experimenter, Session
     from base_schemas.schemas.scene.subject import Subject, SubjectKind
-    from base_schemas.schemas.scene.task import Task
 
     lab_key = {"lab_id": "spine"}
     Lab.insert1(
@@ -75,8 +75,8 @@ def test_subject_task_and_multi_subject_session(dj_connection):
             {"subject_id": sid, **lab_key, "subject_code": name, "subject_kind": "mouse"},
             skip_duplicates=True,
         )
-    Task.insert1(
-        {"task_name": "gaze_v1", "task_title": "Gaze tracking"},
+    Project.insert1(
+        {"project_name": "gaze_v1", "project_title": "Gaze tracking"},
         skip_duplicates=True,
     )
     Experimenter.insert1(
@@ -93,7 +93,7 @@ def test_subject_task_and_multi_subject_session(dj_connection):
         **session_key,
         "session_code": "multi-subject-run",
         "session_date": dt.date(2026, 6, 1),
-        "task_name": "gaze_v1",
+        "project_name": "gaze_v1",
         "experimenter_name": "alice",
     }
     with Session.connection.transaction:
@@ -104,7 +104,7 @@ def test_subject_task_and_multi_subject_session(dj_connection):
         )
 
     row = (Session & session_key).fetch1()
-    assert row["task_name"] == "gaze_v1"
+    assert row["project_name"] == "gaze_v1"
     assert row["experimenter_name"] == "alice"
     assert set((Session.Subject & session_key).fetch("subject_id")) == set(subject_ids)
 
@@ -116,9 +116,9 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     from base_schemas.ingestion.register.session import session_meta_payload
     from base_schemas.schemas.provenance.row_meta import SessionRowMeta
     from base_schemas.schemas.scene.lab import Lab
+    from base_schemas.schemas.scene.project import Project
     from base_schemas.schemas.scene.session import Experimenter, Session
     from base_schemas.schemas.scene.subject import Subject
-    from base_schemas.schemas.scene.task import Task
 
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "test-local")
     monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "test")
@@ -133,8 +133,8 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
         {"subject_id": subject_id, **lab_key, "subject_code": "reg-1", "subject_kind": "mouse"},
         skip_duplicates=True,
     )
-    Task.insert1(
-        {"task_name": "reg_task", "task_title": "Register task"},
+    Project.insert1(
+        {"project_name": "reg_project", "project_title": "Register project"},
         skip_duplicates=True,
     )
     Experimenter.insert1(
@@ -148,7 +148,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
         session_date,
         lab=lab_key,
         subjects=[{"subject_id": subject_id}],
-        task={"task_name": "reg_task"},
+        project={"project_name": "reg_project"},
         experimenter={"experimenter_name": "reg_user"},
     )
     assert key["lab_id"] == "reglab"
@@ -156,7 +156,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     row = (Session & key).fetch1()
     assert row["session_code"] == "morning-run"
     assert row["session_date"] == session_date
-    assert row["task_name"] == "reg_task"
+    assert row["project_name"] == "reg_project"
     assert row["experimenter_name"] == "reg_user"
     assert list((Session.Subject & key).fetch("subject_id")) == [subject_id]
     meta = (SessionRowMeta & key).fetch1()
@@ -170,7 +170,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
         session_date,
         lab=lab_key,
         subjects=[{"subject_id": subject_id}],
-        task={"task_name": "reg_task"},
+        project={"project_name": "reg_project"},
         experimenter={"experimenter_name": "reg_user"},
     )
     assert again == key

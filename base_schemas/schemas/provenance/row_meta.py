@@ -10,9 +10,9 @@ from base_schemas.core.types import DjKey, DjRow
 from base_schemas.schemas.provenance._schema import schema
 from base_schemas.schemas.provenance.deployment import Deployment  # noqa: F401
 from base_schemas.schemas.scene.lab import Lab
+from base_schemas.schemas.scene.project import Project
 from base_schemas.schemas.scene.session import Session
 from base_schemas.schemas.scene.subject import Subject
-from base_schemas.schemas.scene.task import Task
 
 
 # do not use this base class directly (no @schema decorator)
@@ -65,8 +65,8 @@ class LabRowMeta(RowMetaBase):
 
 
 @schema
-class TaskRowMeta(RowMetaBase):
-    """Provenance for one ``Task`` row."""
+class ProjectRowMeta(RowMetaBase):
+    """Provenance for one ``Project`` row."""
 
-    tracked_table = Task
+    tracked_table = Project
     definition = RowMetaBase.build_definition(tracked_table)

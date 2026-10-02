@@ -27,34 +27,34 @@ def test_overwrite_resets_omitted_nullable_field_and_stamp_matches(dj_connection
     from base_schemas.ingestion.register.session import session_meta_payload
     from base_schemas.schemas.provenance.row_meta import SessionRowMeta
     from base_schemas.schemas.scene.lab import Lab
+    from base_schemas.schemas.scene.project import Project
     from base_schemas.schemas.scene.session import Session
-    from base_schemas.schemas.scene.task import Task
 
     deployment = {"deployment_id": "test-local", "label": "test"}
     Lab.insert1({"lab_id": "nul_lab"}, skip_duplicates=True)
-    Task.insert1({"task_name": "nul_task"}, skip_duplicates=True)
+    Project.insert1({"project_name": "nul_project"}, skip_duplicates=True)
     key = {"lab_id": "nul_lab", "session_id": "n" * 32}
     session = {**key, "session_code": "nul-1", "session_date": dt.date(2026, 1, 1)}
 
-    with_task = {**session, "task_name": "nul_task"}
+    with_project = {**session, "project_name": "nul_project"}
     insert_tracked_row(
         SessionRowMeta,
-        with_task,
-        payload=session_meta_payload(with_task),
+        with_project,
+        payload=session_meta_payload(with_project),
         deployment=deployment,
         if_exists=DuplicatePolicy.REJECT,
     )
     with pytest.warns(UserWarning, match="content hash changed"):
         insert_tracked_row(
             SessionRowMeta,
-            session,  # task_name omitted
+            session,  # project_name omitted
             payload=session_meta_payload(session),
             deployment=deployment,
             if_exists=DuplicatePolicy.OVERWRITE,
         )
 
     stored = (Session & key).fetch1()
-    assert stored["task_name"] is None
+    assert stored["project_name"] is None
     assert (SessionRowMeta & key).fetch1("content_hash") == content_hash(
         session_meta_payload(stored)
     )

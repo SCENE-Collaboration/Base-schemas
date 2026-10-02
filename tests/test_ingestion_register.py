@@ -43,7 +43,7 @@ def test_session_meta_payload_includes_lookups_and_subjects():
         "session_id": "deadbeef" * 4,
         "session_code": "morning-run",
         "session_date": date(2026, 5, 1),
-        "task_name": "gaze_v1",
+        "project_name": "gaze_v1",
         "experimenter_name": "alice",
     }
     subject_ids = ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
@@ -51,7 +51,7 @@ def test_session_meta_payload_includes_lookups_and_subjects():
     assert payload == {
         "session_date": "2026-05-01",
         "session_code": "morning-run",
-        "task_name": "gaze_v1",
+        "project_name": "gaze_v1",
         "experimenter_name": "alice",
         "subject_ids": subject_ids,
     }
@@ -162,12 +162,12 @@ def test_register_session_writes_optional_lookup_fks(monkeypatch):
             date(2026, 6, 1),
             lab={"lab_id": "mlai"},
             subjects=subjects,
-            task={"task_name": "gaze_v1"},
+            project={"project_name": "gaze_v1"},
             experimenter={"experimenter_name": "alice"},
         )
 
     session_row = write.call_args.args[1]
-    assert session_row["task_name"] == "gaze_v1"
+    assert session_row["project_name"] == "gaze_v1"
     assert session_row["experimenter_name"] == "alice"
     part_rows = write.call_args.kwargs["parts"][session_part]
     assert [r["subject_id"] for r in part_rows] == ["a" * 32, "b" * 32]

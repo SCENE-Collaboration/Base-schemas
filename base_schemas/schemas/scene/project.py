@@ -1,4 +1,4 @@
-"""SCENE-shared task catalog (protocol identity only)."""
+"""SCENE-shared project catalog."""
 
 import datajoint as dj
 
@@ -14,11 +14,11 @@ from base_schemas.schemas.scene._schema import schema
 @mark_sync_authority(SyncAuthority.CENTRAL)
 @mark_write_role(WriteRole.ADMIN)
 @schema
-class Task(dj.Manual):
-    """Admin-only insertion: Shared protocol/paradigm catalog."""
+class Project(dj.Manual):
+    """Admin-only insertion: shared project catalog."""
 
     definition = """
-    task_name: varchar(100)  # stable id, e.g. visual_discrim_v2
+    project_name: varchar(100)  # stable id, e.g. mousear
     ---
-    task_title='': varchar(255)  # human-readable label
+    project_title='': varchar(255)  # human-readable label
     """
