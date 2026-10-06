@@ -274,6 +274,72 @@ def test_register_subjects_and_session_in_one_transaction(dj_connection, monkeyp
     assert not (Subject & {**lab_key, "subject_code": "txn-3"})
 
 
+def test_overwrite_keeps_subject_links_that_a_lab_table_references(dj_connection, monkeypatch):
+    """OVERWRITE rewrites only the subject links that differ (FKs are ON DELETE RESTRICT)."""
+    import datajoint as dj
+    from base_schemas.core.config import load_settings
+    from base_schemas.ingestion import register_session, register_subject
+    from base_schemas.ingestion.provenance import DuplicatePolicy
+    from base_schemas.schemas.scene.lab import Lab
+    from base_schemas.schemas.scene.session import Session
+
+    monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "test-local")
+    monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "test")
+    lab_key = {"lab_id": "reflab"}
+    Lab.insert1({**lab_key, "lab_name": "Ref Lab"}, skip_duplicates=True)
+
+    lab_schema = dj.Schema(load_settings().db_name("reflab"), connection=dj_connection)
+
+    @lab_schema
+    class SubjectNote(dj.Manual):
+        """Stands in for a lab table that hangs data off a session's subject."""
+
+        definition = """
+        -> Session.Subject
+        ---
+        note: varchar(64)
+        """
+
+    noted, other = (register_subject(code, "mouse", lab=lab_key) for code in ("ref-1", "ref-2"))
+    key = register_session("ref-run", dt.date(2026, 9, 1), lab=lab_key, subjects=[noted, other])
+    SubjectNote.insert1({**key, **noted, "note": "kept"})
+
+    def overwrite(session_date, subjects):
+        with pytest.warns(UserWarning, match="content hash changed"):
+            return register_session(
+                "ref-run",
+                session_date,
+                lab=lab_key,
+                subjects=subjects,
+                if_exists=DuplicatePolicy.OVERWRITE,
+            )
+
+    def linked():
+        return {row["subject_id"] for row in (Session.Subject & key).keys()}
+
+    # Same subjects, other date: the referenced link is left in place.
+    assert overwrite(dt.date(2026, 9, 2), [other, noted]) == key
+    assert (Session & key).fetch1("session_date") == dt.date(2026, 9, 2)
+    assert linked() == {noted["subject_id"], other["subject_id"]}
+    assert (SubjectNote & key).fetch1("note") == "kept"
+
+    # An unreferenced link can be removed.
+    overwrite(dt.date(2026, 9, 2), [noted])
+    assert linked() == {noted["subject_id"]}
+
+    # Removing the referenced link is refused, and the whole overwrite rolls back.
+    with pytest.raises(dj.errors.IntegrityError):
+        register_session(
+            "ref-run",
+            dt.date(2026, 9, 3),
+            lab=lab_key,
+            subjects=[other],
+            if_exists=DuplicatePolicy.OVERWRITE,
+        )
+    assert linked() == {noted["subject_id"]}
+    assert (Session & key).fetch1("session_date") == dt.date(2026, 9, 2)
+
+
 def test_ensure_schema_version_idempotent_then_assert(dj_connection):
     from base_schemas.core.versioning import assert_schema_compatible, ensure_schema_version
     from base_schemas.schemas.scene._schema import (

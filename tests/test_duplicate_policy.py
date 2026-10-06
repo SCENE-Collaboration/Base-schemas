@@ -91,20 +91,38 @@ class _FakeMeta(_FakeTable):
 
 
 class _FakePart:
-    """Part table stand-in: rows as a list, delete_quick by master restriction."""
+    """Part table stand-in keyed by (lab_id, member); records the statements it receives."""
 
-    def __init__(self, rows=()):
+    primary_key = ["lab_id", "member"]
+
+    def __init__(self, rows=(), secondary=()):
+        self.heading = SimpleNamespace(secondary_attributes=list(secondary))
         self.rows = [dict(row) for row in rows]
+        self.calls = []
 
     def insert(self, rows):
-        self.rows.extend(dict(row) for row in rows)
+        rows = [dict(row) for row in rows]
+        self.calls.append(("insert", rows))
+        self.rows.extend(rows)
+
+    def update1(self, row):
+        self.calls.append(("update1", dict(row)))
+        stored = next(r for r in self.rows if all(r[k] == row[k] for k in self.primary_key))
+        stored.update(row)
 
     def __and__(self, key):
         part = self
 
+        def matches(row):
+            return all(row[k] == v for k, v in key.items())
+
         class _Restricted:
+            def keys(self):
+                return [{k: r[k] for k in part.primary_key} for r in part.rows if matches(r)]
+
             def delete_quick(self):
-                part.rows = [r for r in part.rows if any(r[k] != v for k, v in key.items())]
+                part.calls.append(("delete_quick", dict(key)))
+                part.rows = [r for r in part.rows if not matches(r)]
 
         return _Restricted()
 
@@ -286,6 +304,32 @@ def test_overwrite_replaces_parts_of_this_row_only(deployment_table):
     part = _FakePart([{**_LAB_KEY, "member": "old"}, other])
     _insert(meta, DuplicatePolicy.OVERWRITE, parts={part: [{"member": "new"}]})
     assert part.rows == [other, {**_LAB_KEY, "member": "new"}]
+
+
+def test_overwrite_touches_only_the_parts_that_differ(deployment_table):
+    """A part row that stays is not deleted: another table may reference it."""
+    _, meta = _tables(lab_exists=True, stamp=_stamp())
+    part = _FakePart([{**_LAB_KEY, "member": "kept"}, {**_LAB_KEY, "member": "gone"}])
+    _insert(meta, DuplicatePolicy.OVERWRITE, parts={part: [{"member": "kept"}, {"member": "new"}]})
+    assert part.calls == [
+        ("delete_quick", {**_LAB_KEY, "member": "gone"}),
+        ("insert", [{**_LAB_KEY, "member": "new"}]),
+    ]
+    assert part.rows == [{**_LAB_KEY, "member": "kept"}, {**_LAB_KEY, "member": "new"}]
+
+
+def test_overwrite_with_unchanged_parts_writes_no_part_rows(deployment_table):
+    _, meta = _tables(lab_exists=True, stamp=_stamp())
+    part = _FakePart([{**_LAB_KEY, "member": "kept"}])
+    _insert(meta, DuplicatePolicy.OVERWRITE, parts={part: [{"member": "kept"}]})
+    assert part.calls == []
+
+
+def test_overwrite_updates_the_fields_of_a_part_that_stays(deployment_table):
+    _, meta = _tables(lab_exists=True, stamp=_stamp())
+    part = _FakePart([{**_LAB_KEY, "member": "kept", "role": "old"}], secondary=["role", "note"])
+    _insert(meta, DuplicatePolicy.OVERWRITE, parts={part: [{"member": "kept", "role": "new"}]})
+    assert part.calls == [("update1", {**_LAB_KEY, "member": "kept", "role": "new", "note": None})]
 
 
 @pytest.mark.parametrize("policy", [DuplicatePolicy.SKIP, DuplicatePolicy.VERIFY])

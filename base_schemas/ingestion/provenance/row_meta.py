@@ -114,9 +114,8 @@ def insert_tracked_row(
         # Complement ``row`` with all omitted optional fields set to their default values.
         full_row = {**dict.fromkeys(tracked_table.heading.secondary_attributes), **row}
         tracked_table.update1(full_row)
-        for part_table in parts or {}:
-            (part_table & row_key).delete_quick()
-        _insert_parts(parts, row_key)
+        for part_table, part_rows in (parts or {}).items():
+            _replace_parts(part_table, row_key, part_rows)
         if stored_hash is None:
             row_meta_table.insert1(stamp)
         else:
@@ -150,6 +149,33 @@ def _insert_parts(parts: Mapping[type[dj.Part], Sequence[DjRow]] | None, row_key
     for part_table, part_rows in (parts or {}).items():
         if part_rows:
             part_table.insert([{**row_key, **part_row} for part_row in part_rows])
+
+
+def _replace_parts(part_table: type[dj.Part], row_key: DjKey, part_rows: Sequence[DjRow]) -> None:
+    """Replace the part rows under ``row_key``, writing only the rows that differ.
+
+    Kept rows are not deleted: other tables may reference them.
+    """
+    primary_key = part_table.primary_key
+    secondary = part_table.heading.secondary_attributes
+
+    def identity(row: DjRow) -> tuple:
+        return tuple(row[name] for name in primary_key)
+
+    new_rows = {identity(row): row for row in ({**row_key, **part} for part in part_rows)}
+    stored_keys = {identity(key): key for key in (part_table & row_key).keys()}
+
+    for ident, key in stored_keys.items():
+        if ident not in new_rows:
+            (part_table & key).delete_quick()
+    added = [row for ident, row in new_rows.items() if ident not in stored_keys]
+    if added:
+        part_table.insert(added)
+    if secondary:
+        for ident, row in new_rows.items():
+            if ident in stored_keys:
+                # Omitted optional fields are reset to their default.
+                part_table.update1({**dict.fromkeys(secondary), **row})
 
 
 def _stored_hash(row_meta_table: type[RowMetaBase], row_key: DjKey) -> str | None:
