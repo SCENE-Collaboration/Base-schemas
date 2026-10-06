@@ -1,7 +1,9 @@
 """Intent markers for SCENE tables: sync authority and write role.
 
-Markers enforce nothing. Deploy tooling turns a write role into MySQL grants;
-sync tooling (not written yet) turns a sync authority into a conflict rule.
+Note:
+    Markers are **not enforced** by this package. The database administrator
+    sets up grants and sync rules from them.
+
 Read them with ``sync_authority_of`` / ``write_role_of``.
 
 ``SyncAuthority`` names which database holds the truth for a row:

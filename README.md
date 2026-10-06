@@ -134,8 +134,13 @@ this rule; ingestion code built on them (e.g. a manifest loader) should too.
 
 ## Table markers
 
-Two optional markers record intent; they enforce nothing. Read them with
+Two optional markers declare intent for whoever administers a database; this
+package does not act on them. Read the markers with
 ``sync_authority_of`` and ``write_role_of``.
+
+> [!IMPORTANT]
+> This package only defines the markers; it does not enforce them. Grants and
+> sync jobs differ per deployment and are the database administrator's to set up.
 
 ``SyncAuthority`` names which database holds the truth: ``CENTRAL`` (consortium
 catalogs; central database has authority), ``ORIGIN`` (the site that acquired the
