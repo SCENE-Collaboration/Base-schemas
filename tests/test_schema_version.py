@@ -166,3 +166,51 @@ def test_schema_version_table_records_code_version_on_declare(monkeypatch):
     assert row["version"] == "0.2.0"
     assert row["notes"] == "recorded on creation"
     assert kwargs == {"skip_duplicates": True}
+
+
+@pytest.fixture
+def version_registry(monkeypatch):
+    """Fresh registry of version tables and of checked databases."""
+    monkeypatch.setattr(sv, "_VERSION_TABLES", [])
+    monkeypatch.setattr(sv, "_COMPATIBLE_DATABASES", set())
+    calls = []
+    monkeypatch.setattr(
+        sv, "assert_schema_compatible", lambda version, table: calls.append((version, table))
+    )
+    return calls
+
+
+def test_assert_database_compatible_checks_the_bound_version_table_once(version_registry):
+    class SceneVersion(sv.SchemaVersionTable):
+        code_version = "0.2.0"
+        database = "dev_scene"
+
+    class OtherVersion(sv.SchemaVersionTable):
+        code_version = "0.1.0"
+        database = "dev_other"
+
+    sv.assert_database_compatible("dev_scene")
+    sv.assert_database_compatible("dev_scene")
+    assert version_registry == [("0.2.0", SceneVersion)]
+
+
+def test_assert_database_compatible_ignores_database_without_version_table(version_registry):
+    sv.assert_database_compatible("dev_lab_own_schema")
+    assert version_registry == []
+
+
+def test_assert_database_compatible_raises_and_rechecks_after_mismatch(monkeypatch):
+    monkeypatch.setattr(sv, "_VERSION_TABLES", [])
+    monkeypatch.setattr(sv, "_COMPATIBLE_DATABASES", set())
+
+    class SceneVersion(sv.SchemaVersionTable):
+        code_version = "0.2.0"
+        database = "dev_scene"
+
+    def mismatch(version, table):
+        raise sv.SchemaVersionError("Schema version mismatch")
+
+    monkeypatch.setattr(sv, "assert_schema_compatible", mismatch)
+    for _ in range(2):  # a failed check is not cached
+        with pytest.raises(sv.SchemaVersionError, match="mismatch"):
+            sv.assert_database_compatible("dev_scene")

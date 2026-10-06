@@ -7,14 +7,11 @@ name = "base-schemas"
 version = "2.0.0"
 description = "SCENE shared DataJoint base schemas (legacy mice/exp + emerging SCENE spine)"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
-    # datajoint 2.2 dropped Python 3.8; pin to <2.2 there and require >=2.2 elsewhere.
-    # sync.py requires datajoint>=2.2 (dj.Instance); enforced at runtime on 3.8.
-    "datajoint>=0.13,<2.2; python_version < '3.9'",
-    "datajoint>=2.2; python_version >= '3.9'",
+    "datajoint>=2.2",
     "packaging", # required by datajoint > 1
-    "typing_extensions>=4.6; python_version < '3.12'",
+    "typing_extensions>=4.6",
 ]
 
 [project.optional-dependencies]
@@ -39,13 +36,15 @@ filterwarnings = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py38"
+target-version = "py310"
 src = ["base_schemas", "tests"]
 # Honor the excludes below also for paths passed explicitly (pre-commit does that).
 force-exclude = true
 extend-exclude = [
     # Frozen Mathis-lab example schemas — keep DJ definitions as-is.
     "examples/mlai_schemas",
+    # Demo notebooks import halfway and print long lines on purpose.
+    "*.ipynb",
 ]
 
 [tool.ruff.lint]

@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.12"]
+        python-version: ["3.10", "3.12"]
 
     services:
       mysql:
@@ -30,7 +30,7 @@ jobs:
           --health-retries=20
 
     env:
-      AUTO_ACTIVATE: ${{ matrix.python-version != '3.8' && '1' || '' }}
+      AUTO_ACTIVATE: "1"
       DJ_HOST: 127.0.0.1
       DJ_USER: root
       DJ_PASS: simple

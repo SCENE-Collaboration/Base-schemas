@@ -24,8 +24,8 @@ def test_import_subject_module(dj_connection):
     assert module is not None
 
 
-def test_import_task_module(dj_connection):
-    module = importlib.import_module("base_schemas.schemas.scene.task")
+def test_import_project_module(dj_connection):
+    module = importlib.import_module("base_schemas.schemas.scene.project")
     assert module is not None
 
 
