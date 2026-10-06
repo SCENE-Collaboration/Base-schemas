@@ -78,6 +78,23 @@ def test_register_session_rejects_empty_name(monkeypatch):
         )
 
 
+@pytest.mark.parametrize(
+    ("subjects", "message"),
+    [
+        ([{"subject_code": "P012"}], "has no subject_id"),
+        ([{"subject_id": ""}], "has no subject_id"),
+        ([{"subject_id": None}], "has no subject_id"),
+        ([{"subject_id": "a" * 32}, {"subject_id": "a" * 32}], "listed more than once"),
+    ],
+)
+def test_register_session_rejects_invalid_subject_keys(monkeypatch, subjects, message):
+    monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "local")
+    with pytest.raises(ValueError, match=message):
+        session_reg.register_session(
+            "morning-run", date(2026, 1, 1), lab={"lab_id": "mlai"}, subjects=subjects
+        )
+
+
 def _fake_connection():
     conn = MagicMock()
     conn.in_transaction = False

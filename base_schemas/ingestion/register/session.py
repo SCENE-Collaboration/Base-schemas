@@ -33,6 +33,19 @@ def session_meta_payload(
     }
 
 
+def _subject_ids(subjects: Sequence[DjKey[Subject]]) -> list[str]:
+    """Return the ``subject_id`` of each key; reject repeats or invalid keys."""
+    subject_ids = []
+    for subject in subjects:
+        subject_id = subject.get("subject_id")
+        if not isinstance(subject_id, str) or not subject_id:
+            raise ValueError(f"subject key {subject!r} has no subject_id")
+        if subject_id in subject_ids:
+            raise ValueError(f"subject {subject_id!r} is listed more than once")
+        subject_ids.append(subject_id)
+    return subject_ids
+
+
 def register_session(
     session_code: str,
     session_date: date,
@@ -70,15 +83,15 @@ def register_session(
         Session primary key ``{lab_id, session_id}``.
 
     Raises:
-        ValueError: If ``session_code`` is not a valid code, ``deployment`` is omitted
-            and ``SCENE_DEPLOYMENT_ID`` is unset, or ``if_exists`` rejects the
+        ValueError: If ``session_code`` is not a valid code, a subject key has no
+            ``subject_id`` or is listed twice, ``deployment`` is omitted and
+            ``SCENE_DEPLOYMENT_ID`` is unset, or ``if_exists`` rejects the
             existing session.
     """
     code = normalize_code(session_code, field="session_code", max_length=128)
+    subject_ids = _subject_ids(subjects)
 
     deployment_row = deployment if deployment is not None else deployment_row_from_settings()
-
-    subject_ids = [s["subject_id"] for s in subjects]
 
     with atomic(Session.connection):
         # insert_tracked_row matches on the primary key, which is minted: resolve an
