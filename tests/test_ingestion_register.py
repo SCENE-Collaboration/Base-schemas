@@ -11,8 +11,9 @@ from base_schemas.core.config import deployment_row_from_settings
 from base_schemas.core.db import new_id
 from base_schemas.core.hash import content_hash
 from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy
-from base_schemas.ingestion.register import session as session_reg
-from base_schemas.ingestion.register import subject as subject_reg
+from base_schemas.ingestion.scene import SCENE_WRITER_VERSION
+from base_schemas.ingestion.scene import session as session_reg
+from base_schemas.ingestion.scene import subject as subject_reg
 
 
 def test_new_id_is_uuid4_hex():
@@ -156,6 +157,7 @@ def test_register_session_uses_settings_deployment(monkeypatch):
         payload=session_reg.session_meta_payload(session_row, ["a" * 32]),
         deployment={"deployment_id": "from-env", "label": "Env"},
         if_exists=DuplicatePolicy.VERIFY,
+        writer_version=SCENE_WRITER_VERSION,
         parts={session_part: [{"subject_id": "a" * 32}]},
     )
 
@@ -277,6 +279,7 @@ def test_register_subject_mints_id_for_new_name(monkeypatch):
         payload={"lab_id": "mlai", "subject_code": "P012", "subject_kind": "mouse"},
         deployment={"deployment_id": "from-env", "label": "Env"},
         if_exists=DuplicatePolicy.VERIFY,
+        writer_version=SCENE_WRITER_VERSION,
     )
 
 

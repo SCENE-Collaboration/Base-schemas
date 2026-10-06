@@ -3,9 +3,10 @@
 from unittest.mock import patch
 
 import pytest
-from base_schemas.ingestion.admin import lab as lab_admin
-from base_schemas.ingestion.admin import project as project_admin
 from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy
+from base_schemas.ingestion.scene import SCENE_WRITER_VERSION
+from base_schemas.ingestion.scene.admin import lab as lab_admin
+from base_schemas.ingestion.scene.admin import project as project_admin
 
 
 def test_ensure_lab_delegates_to_insert_tracked_row(monkeypatch):
@@ -22,6 +23,7 @@ def test_ensure_lab_delegates_to_insert_tracked_row(monkeypatch):
         payload={"lab_name": "Mathis Lab", "institution": ""},
         deployment={"deployment_id": "from-env", "label": "Env"},
         if_exists=DuplicatePolicy.REJECT,
+        writer_version=SCENE_WRITER_VERSION,
     )
 
 
@@ -57,4 +59,5 @@ def test_ensure_project_delegates_to_insert_tracked_row(monkeypatch):
         payload={"project_title": "Gaze"},
         deployment={"deployment_id": "from-env", "label": "Env"},
         if_exists=DuplicatePolicy.REJECT,
+        writer_version=SCENE_WRITER_VERSION,
     )

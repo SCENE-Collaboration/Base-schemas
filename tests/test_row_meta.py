@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from base_schemas.schemas.mouse.row_meta import MouseRowMeta, StrainRowMeta
 from base_schemas.schemas.provenance.row_meta import (
     LabRowMeta,
     ProjectRowMeta,
@@ -36,11 +37,15 @@ def test_row_meta_subclasses_match_tracked_masters() -> None:
         SubjectRowMeta,
         ProjectRowMeta,
         SessionRowMeta,
+        MouseRowMeta,
+        StrainRowMeta,
     }
     assert LabRowMeta.tracked_table.__name__ == "Lab"
     assert SubjectRowMeta.tracked_table.__name__ == "Subject"
     assert ProjectRowMeta.tracked_table.__name__ == "Project"
     assert SessionRowMeta.tracked_table.__name__ == "Session"
+    assert MouseRowMeta.tracked_table.__name__ == "Mouse"
+    assert StrainRowMeta.tracked_table.__name__ == "Strain"
 
 
 def test_definition_is_built_from_tracked_table_and_shared_attrs() -> None:

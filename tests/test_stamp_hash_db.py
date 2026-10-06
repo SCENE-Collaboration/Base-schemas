@@ -24,7 +24,7 @@ def test_overwrite_resets_omitted_nullable_field_and_stamp_matches(dj_connection
     """OVERWRITE stores the row as an insert would, so the stamp matches the stored row."""
     from base_schemas.core.hash import content_hash
     from base_schemas.ingestion.provenance import DuplicatePolicy, insert_tracked_row
-    from base_schemas.ingestion.register.session import session_meta_payload
+    from base_schemas.ingestion.scene.session import session_meta_payload
     from base_schemas.schemas.provenance.row_meta import SessionRowMeta
     from base_schemas.schemas.scene.lab import Lab
     from base_schemas.schemas.scene.project import Project
@@ -43,6 +43,7 @@ def test_overwrite_resets_omitted_nullable_field_and_stamp_matches(dj_connection
         payload=session_meta_payload(with_project),
         deployment=deployment,
         if_exists=DuplicatePolicy.REJECT,
+        writer_version="test",
     )
     with pytest.warns(UserWarning, match="content hash changed"):
         insert_tracked_row(
@@ -51,6 +52,7 @@ def test_overwrite_resets_omitted_nullable_field_and_stamp_matches(dj_connection
             payload=session_meta_payload(session),
             deployment=deployment,
             if_exists=DuplicatePolicy.OVERWRITE,
+            writer_version="test",
         )
 
     stored = (Session & key).fetch1()
@@ -85,8 +87,8 @@ def test_verify_accepts_datetime_for_stored_date(dj_connection, monkeypatch):
 
 @pytest.mark.xfail(strict=True, raises=ValueError, reason=_PRE_COERCION)
 def test_verify_accepts_int_for_stored_varchar(dj_connection, monkeypatch):
-    from base_schemas.ingestion.admin import ensure_lab
     from base_schemas.ingestion.provenance import DuplicatePolicy
+    from base_schemas.ingestion.scene.admin import ensure_lab
 
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "test-local")
     monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "test")
