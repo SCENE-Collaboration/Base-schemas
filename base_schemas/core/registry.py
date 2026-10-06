@@ -84,6 +84,7 @@ class SchemaRegistry:
         """
         self.name = name
         self._entries: dict[str, _Entry] = {}
+        self._activating: set[str] = set()
 
     @property
     def schemas(self) -> dict[str, dj.Schema]:
@@ -147,6 +148,8 @@ class SchemaRegistry:
     ) -> dj.Schema:
         """Bind a registered schema by suffix using ``activate_schema``.
 
+        Any dependency schemas are activated first.
+
         Args:
             suffix: Logical name without prefix (e.g. ``"scene"``).
             create_tables: Forwarded to ``activate_schema``; defaults to the
@@ -167,7 +170,10 @@ class SchemaRegistry:
             raise KeyError(f"unknown schema {suffix!r}") from exc
 
         resolved_create = entry.create_tables if create_tables is None else create_tables
+        self._activating.add(suffix)
         try:
+            for dependency in self._dependencies(suffix):
+                self.activate(dependency, create_tables=create_tables, connection=connection)
             return activate_schema(
                 entry.schema,
                 suffix,
@@ -182,6 +188,23 @@ class SchemaRegistry:
                 f"cannot activate schema {suffix!r}: it references a table from an unactivated "
                 f"schema (still unbound: {unbound}). Activate the referenced schema first."
             ) from e
+        finally:
+            self._activating.discard(suffix)
+
+    def _dependencies(self, suffix: str) -> list[str]:
+        """List of unbound dependency schemas referenced by the current schema (``suffix``)."""
+        waiting = {
+            name: getattr(self._entries[name].schema, "declare_list", ())
+            for name in self._unbound()
+            if name not in self._activating
+        }
+        owner = {id(table): name for name, tables in waiting.items() for table, _ in tables}
+        referenced = {
+            owner.get(id(value))
+            for _, namespace in getattr(self._entries[suffix].schema, "declare_list", ())
+            for value in namespace.values()
+        }
+        return [name for name in waiting if name in referenced]
 
     def _unbound(self) -> list[str]:
         """Suffixes of the registered schemas that are not activated, in registration order."""
@@ -201,8 +224,7 @@ class SchemaRegistry:
 
         Skips schemas that already have a ``database`` set. Per-schema
         ``create_tables`` from ``make_schema`` is used unless overridden here.
-        Schemas are bound in registration order, so a schema must be registered
-        after the schemas its tables reference.
+        Dependcency schemas are activated first.
 
         Args:
             create_tables: Shared create-tables flag. When omitted, each entry
@@ -211,10 +233,12 @@ class SchemaRegistry:
                 ``activate`` call.
 
         Raises:
-            RuntimeError: If a schema is registered before one it references;
-                see ``activate``.
+            RuntimeError: If a referenced schema could not be bound first; see
+                ``activate``.
         """
         for suffix in self._unbound():
+            if suffix not in self._unbound():
+                continue  # bound meanwhile, as a dependency of an earlier one
             self.activate(
                 suffix,
                 create_tables=create_tables,
