@@ -127,7 +127,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     from base_schemas.core.hash import content_hash
     from base_schemas.ingestion import SCENE_WRITER_VERSION, register_session
     from base_schemas.ingestion.provenance import DuplicatePolicy
-    from base_schemas.ingestion.register.session import session_meta_payload
+    from base_schemas.ingestion.scene.session import session_meta_payload
     from base_schemas.schemas.provenance.row_meta import SessionRowMeta
     from base_schemas.schemas.scene.lab import Lab
     from base_schemas.schemas.scene.project import Project
@@ -207,9 +207,9 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
 
 def test_ensure_lab_duplicate_policy_roundtrip(dj_connection, monkeypatch):
     from base_schemas.core.hash import content_hash
-    from base_schemas.ingestion.admin import ensure_lab
-    from base_schemas.ingestion.admin.lab import lab_meta_payload
     from base_schemas.ingestion.provenance import DuplicatePolicy
+    from base_schemas.ingestion.scene.admin import ensure_lab
+    from base_schemas.ingestion.scene.admin.lab import lab_meta_payload
     from base_schemas.schemas.provenance.row_meta import LabRowMeta
     from base_schemas.schemas.scene.lab import Lab
 
@@ -378,7 +378,7 @@ def test_assert_schema_compatible_mismatch_against_live_db(dj_connection, monkey
         assert_schema_compatible,
         ensure_schema_version,
     )
-    from base_schemas.ingestion.admin import ensure_lab
+    from base_schemas.ingestion.scene.admin import ensure_lab
     from base_schemas.schemas.scene._schema import (
         SCENE_SCHEMA_VERSION,
         SchemaVersion,

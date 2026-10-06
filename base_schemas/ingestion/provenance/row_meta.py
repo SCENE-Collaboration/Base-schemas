@@ -14,7 +14,6 @@ from base_schemas.core.db import atomic
 from base_schemas.core.hash import content_hash
 from base_schemas.core.types import DjKey, DjRow
 from base_schemas.core.versioning import assert_database_compatible
-from base_schemas.ingestion.provenance.ingestion_version import SCENE_WRITER_VERSION
 from base_schemas.schemas.provenance.deployment import Deployment
 from base_schemas.schemas.provenance.row_meta import RowMetaBase
 
@@ -48,8 +47,8 @@ def insert_tracked_row(
     payload: dict[str, Any],
     deployment: DjRow[Deployment],
     if_exists: DuplicatePolicy,
+    writer_version: str,
     parts: Mapping[type[dj.Part], Sequence[DjRow]] | None = None,
-    writer_version: str | None = None,
 ) -> DjKey:
     """Insert ``row`` into ``row_meta_table.tracked_table`` and stamp it.
 
@@ -66,11 +65,11 @@ def insert_tracked_row(
         payload: Fields hashed into ``content_hash`` (caller-defined shape).
         deployment: Deployment row to stamp with.
         if_exists: Policy when the tracked primary key already exists.
+        writer_version: Stamped ``ingestion_version``: the version constant of
+            the calling ingestion package, e.g. ``SCENE_WRITER_VERSION``.
         parts: Optional part rows per part table, without the master key
             (it is added here), e.g. ``{Session.Subject: [{"subject_id": ...}]}``.
             Include them in ``payload`` so the hash covers them.
-        writer_version: Stamped ``ingestion_version``; ``SCENE_WRITER_VERSION``
-            when omitted.
 
     Returns:
         Primary key of the tracked row.
@@ -87,7 +86,7 @@ def insert_tracked_row(
     stamp = {
         **row_key,
         **{name: deployment[name] for name in Deployment.primary_key},
-        "ingestion_version": writer_version or SCENE_WRITER_VERSION,
+        "ingestion_version": writer_version,
         "content_hash": content_hash(payload),
         "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
     }

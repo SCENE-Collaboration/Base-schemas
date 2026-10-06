@@ -14,6 +14,7 @@ from typing import Any
 from base_schemas.core.config import deployment_row_from_settings
 from base_schemas.core.db import atomic, lookup_key
 from base_schemas.core.types import DjKey, DjRow
+from base_schemas.ingestion.mouse._version import MOUSE_WRITER_VERSION
 from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy, insert_tracked_row
 from base_schemas.schemas.mouse.mouse import Strain
 from base_schemas.schemas.mouse.row_meta import StrainRowMeta
@@ -88,4 +89,5 @@ def ensure_strain(
             payload=strain_meta_payload(row),
             deployment=deployment_row,
             if_exists=if_exists,
+            writer_version=MOUSE_WRITER_VERSION,
         )

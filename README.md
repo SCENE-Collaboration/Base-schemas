@@ -18,15 +18,24 @@ Also included:
 
 - `base_schemas.scripts.sync` — copy table rows between servers
 - `base_schemas.ingestion` — supported write path (`register_session`, …);
-- `base_schemas.ingestion.admin` — catalog ensures (`ensure_lab`, `ensure_project`; admin DB role);
+  the helper packages mirror `base_schemas.schemas`:
+  - `base_schemas.ingestion.scene` — `register_subject`, `register_session`;
+  - `base_schemas.ingestion.scene.admin` — catalog ensures (`ensure_lab`, `ensure_project`; admin DB role);
+  - `base_schemas.ingestion.mouse` — `ensure_strain`, `register_mouse`;
+  - `base_schemas.ingestion.provenance` — row stamping and `DuplicatePolicy`;
 
 ## Inserting rows
 
 Write through the helpers in ``base_schemas.ingestion`` rather than calling
 ``insert1`` directly. Every helper writes the row and a row-meta stamp
 (``LabRowMeta``, ``SessionRowMeta``, …) that records which deployment wrote
-it, the ``SCENE_WRITER_VERSION``, and a ``content_hash`` of the row's content.
+it, the writer version, and a ``content_hash`` of the row's content.
 The stamps are what later lets rows be compared and synced between databases.
+
+Each ingestion package has its own writer version (``SCENE_WRITER_VERSION``,
+``MOUSE_WRITER_VERSION``, …) in its ``_version.py``. Bump it when a helper in
+that package changes what it writes or what it hashes; the other packages are
+not affected.
 
 ### Deployment id and label
 
@@ -46,7 +55,7 @@ by the first write and should not be changed later (ignored with a warning).
 ``Lab`` and ``Project`` are catalog tables shared across the collaboration. They
 are marked ``SyncAuthority.CENTRAL`` and ``WriteRole.ADMIN`` (acquisition
 accounts SELECT only) and are created with the helpers in
-``base_schemas.ingestion.admin``:
+``base_schemas.ingestion.scene.admin``:
 
 - ``ensure_lab`` — insert a lab row, return its key
 - ``ensure_project`` — insert a project row, return its key
@@ -117,10 +126,10 @@ detecting changed content:
 | ``OVERWRITE`` | overwrite the row in place as an insert would store it (omitted fields reset to their default), and its stamp (sessions: also their subject links); warn when the hash changed |
 
 ```python
-from base_schemas.ingestion.admin import ensure_lab
+from base_schemas.ingestion.scene import admin
 from base_schemas.ingestion.provenance import DuplicatePolicy
 
-ensure_lab({"lab_id": "mlai", "lab_name": "Mathis Lab"}, if_exists=DuplicatePolicy.VERIFY)
+admin.ensure_lab({"lab_id": "mlai", "lab_name": "Mathis Lab"}, if_exists=DuplicatePolicy.VERIFY)
 ```
 
 ### Design rule: one transaction per write

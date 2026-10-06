@@ -10,13 +10,13 @@ from unittest.mock import patch
 import pytest
 from base_schemas.core.hash import content_hash
 from base_schemas.ingestion.provenance import row_meta as row_meta_mod
-from base_schemas.ingestion.provenance.ingestion_version import SCENE_WRITER_VERSION
 from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy, insert_tracked_row
 
 _DEPLOYMENT = {"deployment_id": "dep1", "label": "Dep"}
 _LAB = {"lab_id": "mlai", "lab_name": "Mathis Lab", "institution": "EPFL"}
 _LAB_KEY = {"lab_id": "mlai"}
 _PAYLOAD = {"lab_name": "Mathis Lab", "institution": "EPFL"}
+_WRITER_VERSION = "1.2.3"
 
 
 class _Restriction:
@@ -159,6 +159,7 @@ def _tables(*, lab_exists: bool, stamp: dict | None = None):
 
 
 def _insert(meta, policy, row=_LAB, payload=_PAYLOAD, **kwargs):
+    kwargs.setdefault("writer_version", _WRITER_VERSION)
     return insert_tracked_row(
         meta, row, payload=payload, deployment=_DEPLOYMENT, if_exists=policy, **kwargs
     )
@@ -173,7 +174,7 @@ def test_new_key_is_inserted_and_stamped(deployment_table, policy):
     assert lab.rows[("mlai",)] == _LAB
     stamp = meta.rows[("mlai",)]
     assert stamp["deployment_id"] == "dep1"
-    assert stamp["ingestion_version"] == SCENE_WRITER_VERSION
+    assert stamp["ingestion_version"] == _WRITER_VERSION
     assert stamp["content_hash"] == content_hash(_PAYLOAD)
     assert "updated_at" in stamp
     assert deployment_table.rows[("dep1",)] == _DEPLOYMENT
@@ -248,7 +249,7 @@ def test_overwrite_updates_row_and_stamp_without_warning_when_hash_matches(deplo
     assert [name for name, _ in meta.calls] == ["update1"]
     stamp = meta.rows[("mlai",)]
     assert stamp["deployment_id"] == "dep1"
-    assert stamp["ingestion_version"] == SCENE_WRITER_VERSION
+    assert stamp["ingestion_version"] == _WRITER_VERSION
     assert deployment_table.rows[("dep1",)] == _DEPLOYMENT
 
 

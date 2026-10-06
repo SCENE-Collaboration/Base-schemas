@@ -12,8 +12,9 @@ from typing import Any
 from base_schemas.core.config import deployment_row_from_settings
 from base_schemas.core.db import atomic, lookup_key
 from base_schemas.core.types import DjKey, DjRow
+from base_schemas.ingestion.mouse._version import MOUSE_WRITER_VERSION
 from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy, insert_tracked_row
-from base_schemas.ingestion.register.subject import register_subject
+from base_schemas.ingestion.scene.subject import register_subject
 from base_schemas.schemas.mouse.mouse import Mouse, Strain
 from base_schemas.schemas.mouse.row_meta import MouseRowMeta
 from base_schemas.schemas.provenance.deployment import Deployment
@@ -100,4 +101,5 @@ def register_mouse(
             payload=mouse_meta_payload(row),
             deployment=deployment_row,
             if_exists=if_exists,
+            writer_version=MOUSE_WRITER_VERSION,
         )

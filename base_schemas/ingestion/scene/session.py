@@ -11,6 +11,7 @@ from base_schemas.core.db import atomic, lookup_key, new_id
 from base_schemas.core.types import DjKey, DjRow
 from base_schemas.ingestion.normalization.code import normalize_code
 from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy, insert_tracked_row
+from base_schemas.ingestion.scene._version import SCENE_WRITER_VERSION
 from base_schemas.schemas.provenance.deployment import Deployment
 from base_schemas.schemas.provenance.row_meta import SessionRowMeta
 from base_schemas.schemas.scene.lab import Lab
@@ -114,5 +115,6 @@ def register_session(
             payload=session_meta_payload(session, subject_ids),
             deployment=deployment_row,
             if_exists=if_exists,
+            writer_version=SCENE_WRITER_VERSION,
             parts={Session.Subject: [{"subject_id": sid} for sid in subject_ids]},
         )

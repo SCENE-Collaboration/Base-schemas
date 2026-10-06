@@ -21,10 +21,10 @@ pytestmark = [
 
 
 def test_mouse_extends_subject_roundtrip(dj_connection, monkeypatch):
-    from base_schemas.ingestion.admin import ensure_lab
+    from base_schemas.ingestion.mouse.mouse import register_mouse
+    from base_schemas.ingestion.mouse.strain import ensure_strain
     from base_schemas.ingestion.provenance import DuplicatePolicy
-    from base_schemas.ingestion.register.mouse import register_mouse
-    from base_schemas.ingestion.register.strain import ensure_strain
+    from base_schemas.ingestion.scene.admin import ensure_lab
     from base_schemas.schemas.mouse.mouse import Mouse, Strain
     from base_schemas.schemas.scene.subject import Subject
 
@@ -54,8 +54,8 @@ def test_mouse_extends_subject_roundtrip(dj_connection, monkeypatch):
 
 
 def test_ensure_strain_keeps_one_spelling_and_one_row_per_rrid(dj_connection, monkeypatch):
+    from base_schemas.ingestion.mouse.strain import ensure_strain
     from base_schemas.ingestion.provenance import DuplicatePolicy
-    from base_schemas.ingestion.register.strain import ensure_strain
     from base_schemas.schemas.mouse.mouse import Strain
     from base_schemas.schemas.mouse.row_meta import StrainRowMeta
 
@@ -102,10 +102,12 @@ def test_ensure_strain_keeps_one_spelling_and_one_row_per_rrid(dj_connection, mo
 
 def test_register_mouse_writes_subject_and_mouse_atomically(dj_connection, monkeypatch):
     from base_schemas.ingestion import register_subject
-    from base_schemas.ingestion.admin import ensure_lab
+    from base_schemas.ingestion.mouse import MOUSE_WRITER_VERSION
+    from base_schemas.ingestion.mouse.mouse import register_mouse
+    from base_schemas.ingestion.mouse.strain import ensure_strain
     from base_schemas.ingestion.provenance import DuplicatePolicy
-    from base_schemas.ingestion.register.mouse import register_mouse
-    from base_schemas.ingestion.register.strain import ensure_strain
+    from base_schemas.ingestion.scene import SCENE_WRITER_VERSION
+    from base_schemas.ingestion.scene.admin import ensure_lab
     from base_schemas.schemas.mouse.mouse import Mouse
     from base_schemas.schemas.mouse.row_meta import MouseRowMeta
     from base_schemas.schemas.provenance.row_meta import SubjectRowMeta
@@ -126,7 +128,9 @@ def test_register_mouse_writes_subject_and_mouse_atomically(dj_connection, monke
     stored = (Mouse & key).fetch1()
     assert (stored["sex"], stored["date_of_birth"]) == ("F", born)
     assert (stored["strain_name"], stored["genotype"]) == ("C57BL/6J", "Cux2-CreERT2/wt")
-    assert len(SubjectRowMeta & key) == len(MouseRowMeta & key) == 1
+    # Each row is stamped by the package that wrote it.
+    assert (SubjectRowMeta & key).fetch1("ingestion_version") == SCENE_WRITER_VERSION
+    assert (MouseRowMeta & key).fetch1("ingestion_version") == MOUSE_WRITER_VERSION
 
     # Same content: VERIFY (default) returns the stored key; changed content raises.
     assert register_mouse("reg-m1", "F", **mouse) == key
