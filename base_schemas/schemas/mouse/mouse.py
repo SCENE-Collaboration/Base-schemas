@@ -12,16 +12,20 @@ from base_schemas.schemas.mouse._schema import schema
 from base_schemas.schemas.scene.subject import Subject  # noqa: F401  # FK: Mouse -> Subject
 
 
-@mark_sync_authority(SyncAuthority.SHARED)
+@mark_sync_authority(SyncAuthority.CENTRAL)
 @schema
 class Strain(dj.Manual):
-    """Shared strain vocabulary — insert a row to add a strain."""
+    """Shared vocabulary of background strains in official nomenclature (MGI guidelines).
+
+    Any lab adds one with ``ensure_strain``. A background strain (e.g. C57BL/6J),
+    Not transgenic line or genotype: those go in ``Mouse.genotype``.
+    """
 
     definition = """
-    strain_name: varchar(128)  # short stable name, e.g. C57BL/6J — never renamed
+    strain_name: varchar(128)  # official nomenclature, e.g. C57BL/6J — never renamed
     ---
-    formal_name='': varchar(2048)  # full nomenclature
-    stock_number='': varchar(255)  # vendor stock number, e.g. JAX 000664
+    rrid=null: varchar(64)  # e.g. RRID:IMSR_JAX:000664
+    unique index (rrid)
     """
 
 
@@ -41,4 +45,5 @@ class Mouse(dj.Manual):
     sex: enum('M', 'F', 'U')  # male, female, unknown
     date_of_birth=null: date
     -> [nullable] Strain
+    genotype='': varchar(255)  # free text, e.g. Ai148(TIT2L-GC6f-ICL-tTA2)/wt;Cux2-CreERT2/wt
     """
