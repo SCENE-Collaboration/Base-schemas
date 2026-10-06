@@ -216,6 +216,11 @@ make client_bash
 Host port for MySQL is `MYSQL_PUBLISH_PORT` in `.env` (default `3306`).
 Schema names use `DJ_SCHEMA_PREFIX`.
 
+MySQL applies `MYSQL_ROOT_PASSWORD` only when the data directory
+(`DATABASE_MOUNT`) is first initialized. If you change it in `.env` afterwards,
+the `db` container never becomes healthy: change the password inside MySQL, or
+remove the data directory to start from an empty database.
+
 ## Tests
 
 ```bash
