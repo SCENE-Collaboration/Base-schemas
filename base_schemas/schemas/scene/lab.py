@@ -21,7 +21,7 @@ class Lab(dj.Manual):
     """Admin-only insertion: Lab / group that collected the data."""
 
     definition = """
-    lab_id: varchar(8)  # short stable token, e.g. mlai — never renamed
+    lab_id: varchar(16)  # short stable token, e.g. mlai — never renamed
     ---
     lab_name='': varchar(255)  # human-readable name
     institution='': varchar(255)
