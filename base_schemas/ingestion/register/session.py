@@ -29,7 +29,7 @@ def session_meta_payload(
         "session_code": session["session_code"],
         "project_name": session.get("project_name"),
         "experimenter_name": session.get("experimenter_name"),
-        "subject_ids": list(subject_ids),
+        "subject_ids": sorted(subject_ids),
     }
 
 

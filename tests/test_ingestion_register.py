@@ -58,6 +58,16 @@ def test_session_meta_payload_includes_lookups_and_subjects():
     assert content_hash(payload) != content_hash({**payload, "session_code": "evening-run"})
 
 
+def test_session_meta_payload_ignores_subject_order():
+    session = {"session_code": "morning-run", "session_date": date(2026, 5, 1)}
+    first, second = "a" * 32, "b" * 32
+    payload = session_reg.session_meta_payload(session, [second, first])
+    assert payload["subject_ids"] == [first, second]
+    assert content_hash(payload) == content_hash(
+        session_reg.session_meta_payload(session, [first, second])
+    )
+
+
 def test_register_session_rejects_empty_name(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "local")
     with pytest.raises(ValueError, match="session_code"):
