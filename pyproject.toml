@@ -46,6 +46,8 @@ force-exclude = true
 extend-exclude = [
     # Frozen Mathis-lab example schemas — keep DJ definitions as-is.
     "examples/mlai_schemas",
+    # Demo notebooks import halfway and print long lines on purpose.
+    "*.ipynb",
 ]
 
 [tool.ruff.lint]
