@@ -28,7 +28,7 @@ def session_meta_payload(
         "session_date": str(session["session_date"]),
         "session_code": session["session_code"],
         "project_name": session.get("project_name"),
-        "experimenter_name": session.get("experimenter_name"),
+        "experimenter_code": session.get("experimenter_code"),
         "subject_ids": sorted(subject_ids),
     }
 
@@ -72,7 +72,7 @@ def register_session(
         lab: Existing lab primary key, e.g. ``{"lab_id": "mlai"}``.
         subjects: Existing subject keys (may be empty).
         project: Optional existing project key.
-        experimenter: Optional existing experimenter key.
+        experimenter: Optional existing experimenter key; must be of ``lab``.
         deployment: Optional deployment row to stamp with. If omitted, built
             from ``SCENE_DEPLOYMENT_ID`` / ``SCENE_DEPLOYMENT_LABEL``.
         if_exists: Policy when ``session_code`` is already registered in
@@ -84,12 +84,15 @@ def register_session(
 
     Raises:
         ValueError: If ``session_code`` is not a valid code, a subject key has no
-            ``subject_id`` or is listed twice, ``deployment`` is omitted and
+            ``subject_id`` or is listed twice, ``experimenter`` is of another
+            lab, ``deployment`` is omitted and
             ``SCENE_DEPLOYMENT_ID`` is unset, or ``if_exists`` rejects the
             existing session.
     """
     code = normalize_code(session_code, field="session_code", max_length=128)
     subject_ids = _subject_ids(subjects)
+    if experimenter is not None and experimenter["lab_id"] != lab["lab_id"]:
+        raise ValueError(f"experimenter {experimenter!r} is not of lab {lab['lab_id']!r}")
 
     deployment_row = deployment if deployment is not None else deployment_row_from_settings()
 

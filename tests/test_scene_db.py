@@ -79,10 +79,7 @@ def test_subject_project_and_multi_subject_session(dj_connection):
         {"project_name": "gaze_v1", "project_title": "Gaze tracking"},
         skip_duplicates=True,
     )
-    Experimenter.insert1(
-        {"experimenter_name": "alice", "full_name": "Alice"},
-        skip_duplicates=True,
-    )
+    Experimenter.insert1({**lab_key, "experimenter_code": "jdoe"}, skip_duplicates=True)
 
     session_key = {**lab_key, "session_id": "f0e1d2c3b4a5968778695a4b3c2d1e0f"}
     subject_ids = [
@@ -94,7 +91,7 @@ def test_subject_project_and_multi_subject_session(dj_connection):
         "session_code": "multi-subject-run",
         "session_date": dt.date(2026, 6, 1),
         "project_name": "gaze_v1",
-        "experimenter_name": "alice",
+        "experimenter_code": "jdoe",
     }
     with Session.connection.transaction:
         Session.insert1(session, skip_duplicates=True)
@@ -105,8 +102,25 @@ def test_subject_project_and_multi_subject_session(dj_connection):
 
     row = (Session & session_key).fetch1()
     assert row["project_name"] == "gaze_v1"
-    assert row["experimenter_name"] == "alice"
+    assert row["experimenter_code"] == "jdoe"
     assert set((Session.Subject & session_key).fetch("subject_id")) == set(subject_ids)
+
+
+def test_session_links_only_an_experimenter_of_its_own_lab(dj_connection):
+    import datajoint as dj
+    from base_schemas.schemas.scene.lab import Lab
+    from base_schemas.schemas.scene.session import Experimenter, Session
+
+    own, other = {"lab_id": "exp_lab_16_chars"}, {"lab_id": "exp_other"}
+    Lab.insert([own, other], skip_duplicates=True)
+    Experimenter.insert1({**other, "experimenter_code": "bob"}, skip_duplicates=True)
+
+    session = {**own, "session_id": "e" * 32, "session_code": "exp-1", "session_date": "2026-01-01"}
+    with pytest.raises(dj.errors.IntegrityError):
+        Session.insert1({**session, "experimenter_code": "bob"})
+
+    Session.insert1(session)  # the link is optional
+    assert (Session & own).fetch1("experimenter_code") is None
 
 
 def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
@@ -137,10 +151,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
         {"project_name": "reg_project", "project_title": "Register project"},
         skip_duplicates=True,
     )
-    Experimenter.insert1(
-        {"experimenter_name": "reg_user", "full_name": "Reg User"},
-        skip_duplicates=True,
-    )
+    Experimenter.insert1({**lab_key, "experimenter_code": "reg_user"}, skip_duplicates=True)
 
     session_date = dt.date(2026, 5, 1)
     key = register_session(
@@ -149,7 +160,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
         lab=lab_key,
         subjects=[{"subject_id": subject_id}],
         project={"project_name": "reg_project"},
-        experimenter={"experimenter_name": "reg_user"},
+        experimenter={**lab_key, "experimenter_code": "reg_user"},
     )
     assert key["lab_id"] == "reglab"
     assert len(key["session_id"]) == 32
@@ -157,7 +168,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     assert row["session_code"] == "morning-run"
     assert row["session_date"] == session_date
     assert row["project_name"] == "reg_project"
-    assert row["experimenter_name"] == "reg_user"
+    assert row["experimenter_code"] == "reg_user"
     assert list((Session.Subject & key).fetch("subject_id")) == [subject_id]
     meta = (SessionRowMeta & key).fetch1()
     assert meta["ingestion_version"] == SCENE_WRITER_VERSION
@@ -171,7 +182,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
         lab=lab_key,
         subjects=[{"subject_id": subject_id}],
         project={"project_name": "reg_project"},
-        experimenter={"experimenter_name": "reg_user"},
+        experimenter={**lab_key, "experimenter_code": "reg_user"},
     )
     assert again == key
     assert len(Session & {**lab_key, "session_code": "morning-run"}) == 1

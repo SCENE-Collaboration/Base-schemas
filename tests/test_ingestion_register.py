@@ -44,7 +44,7 @@ def test_session_meta_payload_includes_lookups_and_subjects():
         "session_code": "morning-run",
         "session_date": date(2026, 5, 1),
         "project_name": "gaze_v1",
-        "experimenter_name": "alice",
+        "experimenter_code": "jdoe",
     }
     subject_ids = ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
     payload = session_reg.session_meta_payload(session, subject_ids)
@@ -52,7 +52,7 @@ def test_session_meta_payload_includes_lookups_and_subjects():
         "session_date": "2026-05-01",
         "session_code": "morning-run",
         "project_name": "gaze_v1",
-        "experimenter_name": "alice",
+        "experimenter_code": "jdoe",
         "subject_ids": subject_ids,
     }
     assert content_hash(payload) != content_hash({**payload, "session_code": "evening-run"})
@@ -92,6 +92,17 @@ def test_register_session_rejects_invalid_subject_keys(monkeypatch, subjects, me
     with pytest.raises(ValueError, match=message):
         session_reg.register_session(
             "morning-run", date(2026, 1, 1), lab={"lab_id": "mlai"}, subjects=subjects
+        )
+
+
+def test_register_session_rejects_experimenter_of_another_lab(monkeypatch):
+    monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "local")
+    with pytest.raises(ValueError, match="is not of lab 'mlai'"):
+        session_reg.register_session(
+            "morning-run",
+            date(2026, 1, 1),
+            lab={"lab_id": "mlai"},
+            experimenter={"lab_id": "other", "experimenter_code": "jdoe"},
         )
 
 
@@ -190,12 +201,12 @@ def test_register_session_writes_optional_lookup_fks(monkeypatch):
             lab={"lab_id": "mlai"},
             subjects=subjects,
             project={"project_name": "gaze_v1"},
-            experimenter={"experimenter_name": "alice"},
+            experimenter={"lab_id": "mlai", "experimenter_code": "jdoe"},
         )
 
     session_row = write.call_args.args[1]
     assert session_row["project_name"] == "gaze_v1"
-    assert session_row["experimenter_name"] == "alice"
+    assert session_row["experimenter_code"] == "jdoe"
     part_rows = write.call_args.kwargs["parts"][session_part]
     assert [r["subject_id"] for r in part_rows] == ["a" * 32, "b" * 32]
     assert write.call_args.kwargs["payload"]["subject_ids"] == ["a" * 32, "b" * 32]

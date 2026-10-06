@@ -51,7 +51,7 @@ accounts SELECT only) and are created with the helpers in
 - ``ensure_lab`` — insert a lab row, return its key
 - ``ensure_project`` — insert a project row, return its key
 
-``Experimenter`` is still a plain shared lookup; seed it directly.
+``Experimenter`` is a plain lookup of pseudonymous codes per lab; seed it directly.
 
 ### Pipeline writes
 

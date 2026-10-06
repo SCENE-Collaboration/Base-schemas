@@ -13,13 +13,11 @@ from base_schemas.schemas.scene.subject import Subject  # noqa: F401
 
 @schema
 class Experimenter(dj.Manual):
-    """Person who ran a session (shared lookup shape)."""
+    """Person who ran a session, known by a code within one lab."""
 
     definition = """
-    experimenter_name: varchar(64)
-    ---
-    full_name='': varchar(255)
-    email='': varchar(128)
+    -> Lab
+    experimenter_code: varchar(64)  # pseudonymous lab code; never a real name
     """
 
 
