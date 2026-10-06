@@ -158,6 +158,8 @@ class SchemaRegistry:
 
         Raises:
             KeyError: If ``suffix`` is not registered.
+            RuntimeError: If a table is referenced from an unactivated schema.
+                The schema is left unbound.
         """
         try:
             entry = self._entries[suffix]
@@ -165,12 +167,29 @@ class SchemaRegistry:
             raise KeyError(f"unknown schema {suffix!r}") from exc
 
         resolved_create = entry.create_tables if create_tables is None else create_tables
-        return activate_schema(
-            entry.schema,
-            suffix,
-            create_tables=resolved_create,
-            connection=connection,
-        )
+        try:
+            return activate_schema(
+                entry.schema,
+                suffix,
+                create_tables=resolved_create,
+                connection=connection,
+            )
+        except AssertionError as e:
+            # A referenced table is not activated yet. Keep the schema unbound.
+            entry.schema.database = None
+            unbound = [name for name in self._unbound() if name != suffix]
+            raise RuntimeError(
+                f"cannot activate schema {suffix!r}: it references a table from an unactivated "
+                f"schema (still unbound: {unbound}). Activate the referenced schema first."
+            ) from e
+
+    def _unbound(self) -> list[str]:
+        """Suffixes of the registered schemas that are not activated, in registration order."""
+        return [
+            suffix
+            for suffix, entry in self._entries.items()
+            if not getattr(entry.schema, "database", None)
+        ]
 
     def activate_all(
         self,
@@ -182,16 +201,20 @@ class SchemaRegistry:
 
         Skips schemas that already have a ``database`` set. Per-schema
         ``create_tables`` from ``make_schema`` is used unless overridden here.
+        Schemas are bound in registration order, so a schema must be registered
+        after the schemas its tables reference.
 
         Args:
             create_tables: Shared create-tables flag. When omitted, each entry
                 uses the value stored at registration.
             connection: Optional DataJoint connection forwarded to each
                 ``activate`` call.
+
+        Raises:
+            RuntimeError: If a schema is registered before one it references;
+                see ``activate``.
         """
-        for suffix, entry in list(self._entries.items()):
-            if getattr(entry.schema, "database", None):
-                continue
+        for suffix in self._unbound():
             self.activate(
                 suffix,
                 create_tables=create_tables,

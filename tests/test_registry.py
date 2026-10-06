@@ -126,6 +126,26 @@ def test_activate_all_binds_unbound_only(monkeypatch, registry):
     assert b.calls == 1
 
 
+def test_activate_names_unbound_schemas_when_a_dependency_is_not_bound(monkeypatch, registry):
+    """DataJoint's bare AssertionError becomes an error that names what to activate first."""
+
+    class DependentSchema(FakeSchema):
+        def activate(self, name, **kwargs):
+            super().activate(name, **kwargs)
+            raise AssertionError  # what DataJoint raises for a FK into an unbound table
+
+    monkeypatch.setenv("DJ_SCHEMA_PREFIX", "dev_")
+    monkeypatch.delenv("AUTO_ACTIVATE", raising=False)
+    monkeypatch.setattr(registry_mod.dj, "Schema", DependentSchema)
+    dependent = registry.make_schema("provenance")
+    monkeypatch.setattr(registry_mod.dj, "Schema", FakeSchema)
+    registry.make_schema("scene")
+
+    with pytest.raises(RuntimeError, match=r"'provenance'.*still unbound: \['scene'\]"):
+        registry.activate_all()
+    assert dependent.database is None  # left unbound, so it can be activated again
+
+
 def test_scene_registry_exported():
     assert SCENE_REGISTRY is registry_mod.SCENE_REGISTRY
     assert isinstance(SCENE_REGISTRY, SchemaRegistry)
