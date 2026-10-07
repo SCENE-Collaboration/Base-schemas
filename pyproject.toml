@@ -41,8 +41,8 @@ src = ["base_schemas", "tests"]
 # Honor the excludes below also for paths passed explicitly (pre-commit does that).
 force-exclude = true
 extend-exclude = [
-    # Frozen Mathis-lab example schemas — keep DJ definitions as-is.
-    "examples/mlai_schemas",
+    # Frozen legacy Mathis-lab schemas — keep DJ definitions as-is.
+    "examples/mlai_schemas/legacy",
     # Demo notebooks import halfway and print long lines on purpose.
     "*.ipynb",
 ]
