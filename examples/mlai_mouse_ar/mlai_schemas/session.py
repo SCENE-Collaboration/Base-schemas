@@ -2,7 +2,7 @@
 
 Date, project, experimenter and the participating mouse are on the shared
 tables. ``day`` and ``session_increment`` of the legacy ``exp.Session`` are not
-stored any more: both follow from the session dates (see ``session_day``).
+stored any more: both follow from the session dates.
 """
 
 import datajoint as dj
@@ -144,12 +144,3 @@ class SessionScoreSheet(dj.Manual):
     ---
     -> ScoreSheet
     """
-
-
-def session_day(session_key) -> int:
-    """Day of the experiment for the session's mouse: 1 on its first session date."""
-    from base_schemas.schemas.scene.session import Session as SceneSession
-
-    mouse = (SceneSession.Subject & session_key).fetch1("subject_id")
-    dates = (SceneSession * SceneSession.Subject & {"subject_id": mouse}).to_arrays("session_date")
-    return ((SceneSession & session_key).fetch1("session_date") - min(dates)).days + 1

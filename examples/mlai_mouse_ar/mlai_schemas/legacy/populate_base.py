@@ -1,4 +1,4 @@
-"""Populate Mathis-lab ``mice`` / ``exp`` tables from session JSON/NPY files.
+"""Populate the legacy MLAI ``mice`` / ``exp`` tables from session JSON/NPY files.
 
 Example-only helper (not part of the installable SCENE ``base_schemas`` API).
 """
@@ -10,7 +10,7 @@ import json
 import logging
 import os
 import re
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 import datajoint as dj
@@ -152,7 +152,7 @@ def _get_latest_session_date(mouse_relation):
     return session_dates[latest_index]
 
 
-@lru_cache(maxsize=None)
+@cache
 def _schema_required_fields(table):
     return {
         attribute.name

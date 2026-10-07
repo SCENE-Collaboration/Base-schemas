@@ -42,7 +42,7 @@ src = ["base_schemas", "tests"]
 force-exclude = true
 extend-exclude = [
     # Frozen legacy Mathis-lab schemas — keep DJ definitions as-is.
-    "examples/mlai_schemas/legacy",
+    "examples/mlai_mouse_ar/mlai_schemas/legacy",
     # Demo notebooks import halfway and print long lines on purpose.
     "*.ipynb",
 ]
@@ -74,4 +74,4 @@ convention = "google"
 [tool.ruff.lint.per-file-ignores]
 "base_schemas/scripts/*.py" = ["E501"]
 "tests/**/*.py" = ["E501", "D"]
-"examples/**/*.py" = ["D"]
+"examples/mlai_mouse_ar/**/*.py" = ["D"]
