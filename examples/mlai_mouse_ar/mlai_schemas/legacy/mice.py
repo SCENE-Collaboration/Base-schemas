@@ -1,4 +1,4 @@
-"""Mathis-lab mouse tables (example)."""
+"""MLAI mouse tables (legacy)."""
 
 import os
 

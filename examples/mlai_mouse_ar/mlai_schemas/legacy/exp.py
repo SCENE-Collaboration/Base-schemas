@@ -1,4 +1,4 @@
-"""Mathis-lab experiment session tables (example)."""
+"""MLAI experiment session tables (legacy)."""
 
 import os
 
