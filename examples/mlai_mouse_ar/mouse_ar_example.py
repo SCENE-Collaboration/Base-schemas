@@ -21,6 +21,7 @@ Sections:
     4. MouseAR: register sessions and link each dataset to its session
     5. Cron job: populate sessions from the GUI's metadata files
     6. Queries across the layers
+    7. Legacy data: migrate the old mice / exp tables
 """
 
 import datetime as dt
@@ -212,3 +213,50 @@ print("score sheet:", check["doc"], check["body_condition"])
 # Mice available for experiments: every mouse of the lab that is not sacrificed.
 available = (Subject * Mouse & MLAI_LAB_KEY) - Sacrificed
 print("available mice:", sorted(available.to_arrays("subject_code")))
+
+
+# --- 7. Legacy data: migrate the old mice / exp tables -----------------------------------
+# The legacy modules bind to the database on import, hence the late import.
+from mlai_ingestion import migrate_legacy_to_v001 as migrate  # noqa: E402
+from mlai_schemas.legacy import exp as legacy_exp  # noqa: E402
+from mlai_schemas.legacy import mice as legacy_mice  # noqa: E402
+
+# Stand-in for the existing lab database: one mouse with one session.
+legacy_mice.Strain.insert1(
+    {"strain": "Cux2-Ai148", "formal_name": "Cux2-CreERT2;Ai148", "stock_number": "N/A"},
+    skip_duplicates=True,
+)
+legacy_mice.Mouse.insert1(
+    {
+        "mouse_name": "Tock",
+        "mouse_id": 977,
+        "dob": "2025-06-20",
+        "sex": "M",
+        "strain": "Cux2-Ai148",
+    },
+    skip_duplicates=True,
+)
+legacy_exp.Session.insert1(
+    {
+        "mouse_name": "Tock",
+        "day": 1,
+        "attempt": 1,
+        "doe": "2026-01-12",
+        "session_increment": 1,
+        "rig_id": 1,
+        "experimenter_name": "user",
+        "anesthesia_name": "awake",
+        "opto_name": "none",
+        "task_name": "AR_visual_discrimination",
+    },
+    skip_duplicates=True,
+)
+
+# The legacy `strain` column mixed background strains and genotypes: what each
+# value means on the shared layer is decided here, once, by hand.
+strain_map = {"Cux2-Ai148": {"strain": c57, "genotype": "Cux2-CreERT2/wt; Ai148/wt"}}
+migrate.migrate_lookups()
+migrate.migrate_mice(strain_map)
+migrated = migrate.migrate_sessions(project=mousear_key, task_names=["AR_visual_discrimination"])
+print("migrated:", list((Session & migrated).to_arrays("session_code")))
+assert migrate.migrate_sessions(project=mousear_key) == []  # nothing new on a re-run
