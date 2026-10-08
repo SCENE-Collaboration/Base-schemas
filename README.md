@@ -74,7 +74,7 @@ shared with the consortium. Helpers live in ``base_schemas.ingestion``:
 
 Subjects and sessions are identified by a code the lab chooses
 (``subject_code``, ``session_code``), unique within the lab. The globally
-unique ``subject_id`` / ``session_id`` is minted by the helper (UUID4 hex) the
+unique ``subject_id`` / ``session_id`` is minted by the helper (UUID4) the
 first time a code is registered. Registering the same code again reuses the
 stored id, so re-running an ingestion does not create duplicates.
 

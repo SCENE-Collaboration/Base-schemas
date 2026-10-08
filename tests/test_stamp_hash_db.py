@@ -33,7 +33,7 @@ def test_overwrite_resets_omitted_nullable_field_and_stamp_matches(dj_connection
     deployment = {"deployment_id": "test-local", "label": "test"}
     Lab.insert1({"lab_id": "nul_lab"}, skip_duplicates=True)
     Project.insert1({"project_name": "nul_project"}, skip_duplicates=True)
-    key = {"lab_id": "nul_lab", "session_id": "n" * 32}
+    key = {"lab_id": "nul_lab", "session_id": "a" * 32}
     session = {**key, "session_code": "nul-1", "session_date": dt.date(2026, 1, 1)}
 
     with_project = {**session, "project_name": "nul_project"}

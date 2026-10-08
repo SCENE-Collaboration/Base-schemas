@@ -38,7 +38,7 @@ class Subject(dj.Manual):
     """
 
     definition = """
-    subject_id: varchar(64)  # minted UUID4 hex; never renamed
+    subject_id: uuid  # minted UUID4; never renamed
     ---
     -> Lab
     subject_code: varchar(64)  # pseudonymous lab code, e.g. P012; never a real name

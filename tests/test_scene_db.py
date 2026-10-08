@@ -2,6 +2,7 @@
 
 import datetime as dt
 import os
+import uuid
 
 import pytest
 
@@ -83,8 +84,8 @@ def test_subject_project_and_multi_subject_session(dj_connection):
 
     session_key = {**lab_key, "session_id": "f0e1d2c3b4a5968778695a4b3c2d1e0f"}
     subject_ids = [
-        "11111111111111111111111111111111",
-        "22222222222222222222222222222222",
+        uuid.UUID("11111111111111111111111111111111"),
+        uuid.UUID("22222222222222222222222222222222"),
     ]
     session = {
         **session_key,
@@ -142,7 +143,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
         {**lab_key, "lab_name": "Register Lab", "institution": "Test U"},
         skip_duplicates=True,
     )
-    subject_id = "33333333333333333333333333333333"
+    subject_id = uuid.UUID("33333333333333333333333333333333")
     Subject.insert1(
         {"subject_id": subject_id, **lab_key, "subject_code": "reg-1", "subject_kind": "mouse"},
         skip_duplicates=True,
@@ -163,7 +164,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
         experimenter={**lab_key, "experimenter_code": "reg_user"},
     )
     assert key["lab_id"] == "reglab"
-    assert len(key["session_id"]) == 32
+    assert isinstance(key["session_id"], uuid.UUID)
     row = (Session & key).fetch1()
     assert row["session_code"] == "morning-run"
     assert row["session_date"] == session_date
