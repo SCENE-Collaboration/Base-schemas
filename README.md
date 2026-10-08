@@ -193,6 +193,17 @@ SCENE_REGISTRY.get("scene") is schema
 | `SCENE_DEPLOYMENT_ID` | Stable id of this database; default `deployment` for all insertion helpers |
 | `SCENE_DEPLOYMENT_LABEL` | Optional human label stored on `Deployment` with the env default |
 
+## Examples
+
+- [`examples/scene_demo.ipynb`](examples/scene_demo.ipynb): architectural *how-to*, to demonstrate the shared tables,
+the write helpers, and how to extend from a shared layer to lab-specific tables.
+- [`examples/mlai_mouse_ar`](examples/mlai_mouse_ar): example integration of the shared layer into a previously existing
+pipeline (M-lab Mouse AR pipeline). Start at
+  [`mouse_ar_example.py`](examples/mlai_mouse_ar/mouse_ar_example.py).
+
+> [!NOTE]
+> Example code is not installed or tested by the package. Integration tests are put in place once packaging is finalized.
+
 ## Installation
 
 ```bash
