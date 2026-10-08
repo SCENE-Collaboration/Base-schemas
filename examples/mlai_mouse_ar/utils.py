@@ -3,7 +3,7 @@ from pathlib import Path
 
 import datajoint as dj
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def connect_to_database(prefix: str = "mousear_example_"):
