@@ -8,7 +8,7 @@ to MLAI, in tables that reference the shared ones.
 |---|---|
 | `mouse.py` | `MouseInfo`, surgery, sacrifice, breeding, score sheets |
 | `session.py` | `SessionInfo` and its lookups, `ExperimenterInfo`, `SessionScoreSheet` |
-| `legacy/` | version 0: the legacy `mice` / `exp` tables, frozen |
+| `legacy/` | the legacy (unversioned) `mice` / `exp` tables, frozen |
 
 Write helpers: `../mlai_ingestion`. Worked example: `../mouse_ar_example.py`.
 

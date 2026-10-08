@@ -1,4 +1,4 @@
-# MLAI schemas, version 0 (pre-SCENE)
+# MLAI legacy schemas (pre-SCENE, unversioned)
 
 Frozen copy of the MLAI `mice` / `exp` tables and `populate_base`, as they
 were on Base-schemas `main` before the shared SCENE layer. Table definitions
