@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from contextlib import ExitStack, nullcontext
 from datetime import date
 from unittest.mock import MagicMock, PropertyMock, patch
@@ -16,11 +17,10 @@ from base_schemas.ingestion.scene import session as session_reg
 from base_schemas.ingestion.scene import subject as subject_reg
 
 
-def test_new_id_is_uuid4_hex():
+def test_new_id_is_uuid4():
     minted = new_id()
-    assert len(minted) == 32
+    assert isinstance(minted, uuid.UUID) and minted.version == 4
     assert minted != new_id()
-    int(minted, 16)
 
 
 def test_build_deployment_row_from_settings_requires_env(monkeypatch):
@@ -154,11 +154,11 @@ def test_register_session_uses_settings_deployment(monkeypatch):
     write.assert_called_once_with(
         session_reg.SessionRowMeta,
         session_row,
-        payload=session_reg.session_meta_payload(session_row, ["a" * 32]),
+        payload=session_reg.session_meta_payload(session_row, [uuid.UUID("a" * 32)]),
         deployment={"deployment_id": "from-env", "label": "Env"},
         if_exists=DuplicatePolicy.VERIFY,
         writer_version=SCENE_WRITER_VERSION,
-        parts={session_part: [{"subject_id": "a" * 32}]},
+        parts={session_part: [{"subject_id": uuid.UUID("a" * 32)}]},
     )
 
 
@@ -209,9 +209,10 @@ def test_register_session_writes_optional_lookup_fks(monkeypatch):
     session_row = write.call_args.args[1]
     assert session_row["project_name"] == "gaze_v1"
     assert session_row["experimenter_code"] == "jdoe"
+    subject_ids = [uuid.UUID("a" * 32), uuid.UUID("b" * 32)]
     part_rows = write.call_args.kwargs["parts"][session_part]
-    assert [r["subject_id"] for r in part_rows] == ["a" * 32, "b" * 32]
-    assert write.call_args.kwargs["payload"]["subject_ids"] == ["a" * 32, "b" * 32]
+    assert [r["subject_id"] for r in part_rows] == subject_ids
+    assert write.call_args.kwargs["payload"]["subject_ids"] == subject_ids
 
 
 @pytest.mark.parametrize("policy", list(DuplicatePolicy))

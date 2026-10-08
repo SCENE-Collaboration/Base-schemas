@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Sequence
 from datetime import date
 from typing import Any
@@ -22,7 +23,7 @@ from base_schemas.schemas.scene.subject import Subject
 
 def session_meta_payload(
     session: dict[str, Any],
-    subject_ids: Sequence[str] = (),
+    subject_ids: Sequence[uuid.UUID] = (),
 ) -> dict[str, Any]:
     """Non-key session fields + subjects that should affect ``content_hash``."""
     return {
@@ -34,13 +35,14 @@ def session_meta_payload(
     }
 
 
-def _subject_ids(subjects: Sequence[DjKey[Subject]]) -> list[str]:
-    """Return the ``subject_id`` of each key; reject repeats or invalid keys."""
+def _subject_ids(subjects: Sequence[DjKey[Subject]]) -> list[uuid.UUID]:
+    """Return the ``subject_id`` of each key as a UUID; reject repeats or invalid keys."""
     subject_ids = []
     for subject in subjects:
         subject_id = subject.get("subject_id")
-        if not isinstance(subject_id, str) or not subject_id:
+        if not subject_id:
             raise ValueError(f"subject key {subject!r} has no subject_id")
+        subject_id = uuid.UUID(str(subject_id))
         if subject_id in subject_ids:
             raise ValueError(f"subject {subject_id!r} is listed more than once")
         subject_ids.append(subject_id)
