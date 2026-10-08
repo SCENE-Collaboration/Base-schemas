@@ -19,10 +19,14 @@ Sections:
     2. Shared layer: a strain
     3. MLAI layer: an experimenter and a mouse
     4. MouseAR: register sessions and link each dataset to its session
-    5. Queries across the layers
+    5. Cron job: populate sessions from the GUI's metadata files
+    6. Queries across the layers
 """
 
 import datetime as dt
+import json
+import tempfile
+from pathlib import Path
 
 import datajoint as dj
 from base_schemas.core import SCENE_REGISTRY, load_settings
@@ -40,6 +44,7 @@ from mlai_ingestion.ingestion import (
     register_mlai_mouse,
     register_mlai_session,
 )
+from mlai_ingestion.populate import populate_base, scan_directory
 from mlai_schemas.mouse import Sacrificed, ScoreSheet
 from mlai_schemas.session import SessionInfo, SessionScoreSheet
 from utils import connect_to_database
@@ -170,7 +175,28 @@ for row in (SessionDataset * Session).to_dicts(order_by="dataset_id"):
     print(f"{row['dataset_id']} -> {row['session_code']}")
 
 
-# --- 5. Queries across the layers -------------------------------------------------------
+# --- 5. Cron job: populate sessions from the GUI's metadata files ------------------------
+# After a session the transfer GUI writes one file, <mouse>_<date>_<attempt>.json.
+# The cron job registers every new file with the same call as before, plus the project.
+metadata_folder = Path(tempfile.mkdtemp(prefix="mice_metadata_"))
+gui_metadata = {
+    "mouse_name": "Tick",
+    "doe": "2026-02-12",
+    "attempt": 1,
+    "experimenter_name": "jdoe",
+    "rig_id": 1,
+    "task_name": "AR_visual_discrimination",
+    **score_sheet,
+}
+(metadata_folder / "Tick_2026-02-12_1.json").write_text(json.dumps(gui_metadata))
+
+print("manifest:", scan_directory(metadata_folder))  # what would be registered; no database
+new = populate_base(metadata_folder, project=mousear_key, suppress_errors=True)
+print("populated:", list((Session & new).to_arrays("session_code")))
+assert populate_base(metadata_folder, project=mousear_key) == []  # nothing new on a re-run
+
+
+# --- 6. Queries across the layers -------------------------------------------------------
 # From a dataset up to the mouse's strain: pipeline -> scene -> mouse.
 dataset = {"dataset_id": "Tick_20260211_091500"}
 row = (SessionDataset * Session * Session.Subject * Mouse * Strain & dataset).fetch1()
