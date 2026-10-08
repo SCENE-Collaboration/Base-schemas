@@ -10,9 +10,9 @@ import datajoint as dj
 from base_schemas.core.types import DjKey
 
 
-def new_id() -> str:
-    """Return a new opaque id for a minted primary key (UUID4 hex, 32 chars)."""
-    return uuid.uuid4().hex
+def new_id() -> uuid.UUID:
+    """Return a new opaque id for a minted primary key (UUID4)."""
+    return uuid.uuid4()
 
 
 def atomic(connection: dj.Connection):

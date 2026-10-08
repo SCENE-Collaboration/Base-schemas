@@ -33,7 +33,7 @@ class Session(dj.Manual):
 
     definition = """
     -> Lab
-    session_id: varchar(64)  # minted UUID4 hex; never renamed
+    session_id: uuid  # minted UUID4; never renamed
     ---
     session_code: varchar(128)  # pseudonymous lab code; never a real name
     session_date: date
