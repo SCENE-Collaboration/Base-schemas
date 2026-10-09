@@ -156,9 +156,11 @@ def test_register_mouse_writes_subject_and_mouse_atomically(dj_connection, monke
 
     # A code that belongs to a subject of another kind is never turned into a mouse.
     register_subject("reg-h1", "human", lab=lab_key)
-    for policy in (DuplicatePolicy.VERIFY, DuplicatePolicy.SKIP):
-        with pytest.raises(ValueError):
+    for policy in DuplicatePolicy:
+        with pytest.raises(ValueError, match="not a mouse"):
             register_mouse("reg-h1", "F", lab=lab_key, if_exists=policy)
+    human = Subject & {**lab_key, "subject_code": "reg-h1"}
+    assert human.fetch1("subject_kind") == "human"  # also under OVERWRITE
     assert not (Mouse & (Subject & {**lab_key, "subject_code": "reg-h1"}))
 
 

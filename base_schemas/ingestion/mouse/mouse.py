@@ -13,6 +13,7 @@ from base_schemas.core.config import deployment_row_from_settings
 from base_schemas.core.db import atomic, lookup_key
 from base_schemas.core.types import DjKey, DjRow
 from base_schemas.ingestion.mouse._version import MOUSE_WRITER_VERSION
+from base_schemas.ingestion.normalization.code import normalize_code
 from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy, insert_tracked_row
 from base_schemas.ingestion.scene.subject import register_subject
 from base_schemas.schemas.mouse.mouse import Mouse, Strain
@@ -82,12 +83,15 @@ def register_mouse(
         ]  # stored spelling (names match case-insensitively)
 
     with atomic(Mouse.connection):
+        # Checked before any write: no policy may turn another kind into a mouse.
+        code = normalize_code(subject_code, field="subject_code", max_length=64)
+        stored = Subject & {**lab, "subject_code": code}
+        if stored and stored.fetch1("subject_kind") != MOUSE_KIND:
+            kind = stored.fetch1("subject_kind")
+            raise ValueError(f"subject {code!r} is registered as {kind!r}, not a mouse")
         subject = register_subject(
-            subject_code, MOUSE_KIND, lab=lab, deployment=deployment_row, if_exists=if_exists
+            code, MOUSE_KIND, lab=lab, deployment=deployment_row, if_exists=if_exists
         )
-        kind = (Subject & subject).fetch1("subject_kind")
-        if kind != MOUSE_KIND:
-            raise ValueError(f"subject {subject_code!r} is registered as {kind!r}, not a mouse")
         row = {
             **subject,
             "sex": sex,
