@@ -31,7 +31,7 @@ def mouse_meta_payload(row: dict[str, Any]) -> dict[str, Any]:
         "sex": row["sex"],
         "date_of_birth": None if date_of_birth is None else str(date_of_birth),
         "strain_name": row.get("strain_name"),
-        "genotype": row.get("genotype") or "",
+        "genotype": row.get("genotype"),
     }
 
 
@@ -42,7 +42,7 @@ def register_mouse(
     lab: DjKey[Lab],
     date_of_birth: date | None = None,
     strain: DjKey[Strain] | None = None,
-    genotype: str = "",
+    genotype: str | None = None,
     deployment: DjRow[Deployment] | None = None,
     if_exists: DuplicatePolicy = DuplicatePolicy.VERIFY,
 ) -> DjKey[Mouse]:

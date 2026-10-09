@@ -45,5 +45,5 @@ class Mouse(dj.Manual):
     sex: enum('M', 'F', 'U')  # male, female, unknown
     date_of_birth=null: date
     -> [nullable] Strain
-    genotype='': varchar(255)  # free text, e.g. Ai148(TIT2L-GC6f-ICL-tTA2)/wt;Cux2-CreERT2/wt
+    genotype=null: varchar(255)  # free text, e.g. Cux2-CreERT2/wt; null = not recorded
     """

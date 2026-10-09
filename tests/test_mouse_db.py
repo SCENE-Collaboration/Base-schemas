@@ -50,7 +50,7 @@ def test_mouse_extends_subject_roundtrip(dj_connection, monkeypatch):
     assert row["subject_code"] == "mouse-1"
     assert row["rrid"] == "RRID:IMSR_JAX:000651"
     assert row["genotype"] == "Cux2-CreERT2/wt"
-    assert (Mouse & minimal).fetch1("date_of_birth", "strain_name", "genotype") == (None, None, "")
+    assert (Mouse & minimal).fetch1("date_of_birth", "strain_name", "genotype") == (None,) * 3
 
 
 def test_ensure_strain_keeps_one_spelling_and_one_row_per_rrid(dj_connection, monkeypatch):
@@ -139,7 +139,7 @@ def test_register_mouse_writes_subject_and_mouse_atomically(dj_connection, monke
     with pytest.warns(UserWarning, match="content hash changed"):
         register_mouse("reg-m1", "M", lab=lab_key, if_exists=DuplicatePolicy.OVERWRITE)
     assert (Mouse & key).fetch1("sex", "date_of_birth", "strain_name") == ("M", None, None)
-    assert (Mouse & key).fetch1("genotype") == ""
+    assert (Mouse & key).fetch1("genotype") is None
 
     # The stored spelling of the strain is written, whatever case the key was given in.
     lower = register_mouse("reg-m4", "F", lab=lab_key, strain={"strain_name": "c57bl/6j"})
