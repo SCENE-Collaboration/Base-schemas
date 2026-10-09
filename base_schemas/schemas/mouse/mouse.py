@@ -12,7 +12,7 @@ from base_schemas.schemas.mouse._schema import schema
 from base_schemas.schemas.scene.subject import Subject  # noqa: F401  # FK: Mouse -> Subject
 
 
-@mark_sync_authority(SyncAuthority.CENTRAL)
+@mark_sync_authority(SyncAuthority.SHARED)
 @schema
 class Strain(dj.Manual):
     """Shared vocabulary of background strains in official nomenclature (MGI guidelines).
