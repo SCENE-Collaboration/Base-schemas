@@ -20,9 +20,7 @@ from base_schemas.schemas.mouse.mouse import Mouse, Strain
 from base_schemas.schemas.mouse.row_meta import MouseRowMeta
 from base_schemas.schemas.provenance.deployment import Deployment
 from base_schemas.schemas.scene.lab import Lab
-from base_schemas.schemas.scene.subject import Subject
-
-MOUSE_KIND = "mouse"
+from base_schemas.schemas.scene.subject import Subject, SubjectKind
 
 
 def mouse_meta_payload(row: dict[str, Any]) -> dict[str, Any]:
@@ -86,11 +84,11 @@ def register_mouse(
         # Checked before any write: no policy may turn another kind into a mouse.
         code = normalize_code(subject_code, field="subject_code", max_length=64)
         stored = Subject & {**lab, "subject_code": code}
-        if stored and stored.fetch1("subject_kind") != MOUSE_KIND:
+        if stored and stored.fetch1("subject_kind") != SubjectKind.MOUSE["subject_kind"]:
             kind = stored.fetch1("subject_kind")
             raise ValueError(f"subject {code!r} is registered as {kind!r}, not a mouse")
         subject = register_subject(
-            code, MOUSE_KIND, lab=lab, deployment=deployment_row, if_exists=if_exists
+            code, SubjectKind.MOUSE, lab=lab, deployment=deployment_row, if_exists=if_exists
         )
         row = {
             **subject,

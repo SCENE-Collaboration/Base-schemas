@@ -9,7 +9,10 @@ from base_schemas.schemas.scene.lab import Lab  # noqa: F401  # FK: Subject -> L
 
 @schema
 class SubjectKind(dj.Lookup):
-    """Extensible vocabulary for ``Subject.kind`` — insert a row to add a kind."""
+    """Extensible vocabulary for ``Subject.kind`` — insert a row to add a kind.
+
+    The built-in kinds are class attributes, e.g. ``SubjectKind.MOUSE``.
+    """
 
     definition = """
     subject_kind: varchar(32)  # e.g. human, mouse, other
@@ -17,13 +20,13 @@ class SubjectKind(dj.Lookup):
     kind_description='': varchar(255)
     """
 
-    contents = [
-        {"subject_kind": "human", "kind_description": "human participant"},
-        {"subject_kind": "mouse", "kind_description": "mouse model"},
-        {"subject_kind": "bat", "kind_description": "bat model"},
-        {"subject_kind": "rl-agent", "kind_description": "reinforcement learning agent"},
-        {"subject_kind": "other", "kind_description": "other / unspecified"},
-    ]
+    HUMAN = {"subject_kind": "human", "kind_description": "human participant"}
+    MOUSE = {"subject_kind": "mouse", "kind_description": "mouse model"}
+    BAT = {"subject_kind": "bat", "kind_description": "bat model"}
+    RL_AGENT = {"subject_kind": "rl-agent", "kind_description": "reinforcement learning agent"}
+    OTHER = {"subject_kind": "other", "kind_description": "other / unspecified"}
+
+    contents = [HUMAN, MOUSE, BAT, RL_AGENT, OTHER]
 
 
 @mark_write_role(WriteRole.ACQUISITION)
