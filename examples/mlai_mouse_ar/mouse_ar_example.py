@@ -144,6 +144,8 @@ class SessionDataset(dj.Computed):
     def make(self, key):
         # Datasets carry a timestamp, not the attempt: the n-th dataset of a
         # mouse on a day belongs to the n-th attempt.
+        # @deruyter92 2026-10-14 TODO: This order-based matching is fragile.
+        # Let's record the link explicitly in the GUI metadata instead.
         dataset = (Dataset & key).fetch1()
         mouse_name = dataset["dataset_id"].split("_")[0]
         recorded_on = dataset["session_date"].date()
@@ -158,9 +160,13 @@ class SessionDataset(dj.Computed):
             & {"subject_code": mouse_name, "session_date": recorded_on}
         ).keys(order_by="attempt")
 
-        index = same_day.index(dataset["dataset_id"])
-        if index < len(sessions):
-            self.insert1({**key, **{name: sessions[index][name] for name in Session.primary_key}})
+        if len(same_day) != len(sessions):
+            raise ValueError(
+                f"{mouse_name} on {recorded_on}: {len(same_day)} datasets but "
+                f"{len(sessions)} sessions; not linking by position"
+            )
+        session = sessions[same_day.index(dataset["dataset_id"])]
+        self.insert1({**key, **{name: session[name] for name in Session.primary_key}})
 
 
 Dataset.insert(
