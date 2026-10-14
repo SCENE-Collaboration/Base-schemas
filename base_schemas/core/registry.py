@@ -68,9 +68,9 @@ class SchemaRegistry:
     ``activate_all`` can bind without re-stating the name. When
     ``AUTO_ACTIVATE`` is set, ``make_schema`` binds immediately.
 
-    Entries are keyed by suffix: repeated ``make_schema`` calls with the same
-    name return the existing instance; a conflicting ``create_tables`` raises. Inspect with
-    ``get`` or the ``schemas`` property.
+    Entries are keyed by suffix: a suffix is registered once, so a lab schema
+    cannot silently reuse a shared one (e.g. ``"mouse"``). Reuse a registered
+    schema with ``get``; inspect all with the ``schemas`` property.
 
     Attributes:
         name: Label for this registry instance (e.g. ``"scene"``).
@@ -104,9 +104,6 @@ class SchemaRegistry:
     ) -> dj.Schema:
         """Create a DataJoint schema, unbound unless ``AUTO_ACTIVATE`` is set.
 
-        Repeated calls with the same ``suffix`` return the same instance. A
-        repeated call that passes a different ``create_tables`` raises.
-
         Args:
             suffix: Logical name without prefix (e.g. ``"scene"``).
             create_tables: Forwarded when activating; ``True`` when omitted.
@@ -115,20 +112,16 @@ class SchemaRegistry:
             A ``dj.Schema`` instance (unbound unless ``AUTO_ACTIVATE``).
 
         Raises:
-            ValueError: If ``suffix`` is empty, or a repeated call passes a
-                ``create_tables`` that differs from the first registration.
+            ValueError: If ``suffix`` is empty or already registered.
         """
         if not suffix:
             raise ValueError("schema suffix must be a non-empty string")
 
-        entry = self._entries.get(suffix)
-        if entry is not None:
-            if create_tables is not None and create_tables != entry.create_tables:
-                raise ValueError(
-                    f"schema {suffix!r} is already registered with "
-                    f"create_tables={entry.create_tables}"
-                )
-            return entry.schema
+        if suffix in self._entries:
+            raise ValueError(
+                f"schema {suffix!r} is already registered; pick another suffix, "
+                f"or reuse it with get({suffix!r})"
+            )
 
         schema = dj.Schema()
         self._entries[suffix] = _Entry(

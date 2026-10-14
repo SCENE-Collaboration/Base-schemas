@@ -211,8 +211,8 @@ SCENE_REGISTRY.activate_all()
 # Or bind any dj.Schema without the registry:
 activate_schema(schema, "scene")
 
-# Repeated registration returns the same instance
-SCENE_REGISTRY.make_schema("scene") is schema
+# A suffix is registered once (make_schema("scene") again raises); reuse it with get
+SCENE_REGISTRY.get("scene") is schema
 
 # Accessing the registry content
 "scene" in SCENE_REGISTRY.schemas  # dict[str, dj.Schema]

@@ -50,24 +50,15 @@ def test_make_schema_rejects_empty_suffix(registry):
         registry.make_schema("")
 
 
-def test_make_schema_reuses_same_suffix(monkeypatch, registry):
+def test_make_schema_rejects_repeated_suffix(monkeypatch, registry):
     monkeypatch.delenv("AUTO_ACTIVATE", raising=False)
     monkeypatch.setattr(registry_mod.dj, "Schema", FakeSchema)
 
     first = registry.make_schema("scene", create_tables=False)
-    assert registry.make_schema("scene") is first
-    assert registry.make_schema("scene", create_tables=False) is first
+    with pytest.raises(ValueError, match="already registered"):
+        registry.make_schema("scene")
     assert list(registry.schemas) == ["scene"]
     assert registry.get("scene") is first
-
-
-def test_make_schema_rejects_conflicting_create_tables(monkeypatch, registry):
-    monkeypatch.delenv("AUTO_ACTIVATE", raising=False)
-    monkeypatch.setattr(registry_mod.dj, "Schema", FakeSchema)
-
-    registry.make_schema("scene", create_tables=False)
-    with pytest.raises(ValueError, match="create_tables=False"):
-        registry.make_schema("scene", create_tables=True)
 
 
 def test_registry_inspection(monkeypatch, registry):
