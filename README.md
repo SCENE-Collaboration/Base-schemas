@@ -121,6 +121,28 @@ with atomic(Session.connection):
     register_session("mousear-session-016", date(2026, 5, 2), lab=lab, subjects=subjects)
 ```
 
+### Finding a row by its lab code
+
+Tables are keyed by the minted id, not by the lab's code. ``subject_key`` and
+``session_key`` look up the key of a code within a lab; use it as a restriction:
+
+```python
+from base_schemas.ingestion import session_key, subject_key
+from base_schemas.schemas.mouse.mouse import Mouse
+
+mouse = Mouse & subject_key("mouse-042", lab={"lab_id": "mlai"})  # restriction
+mouse.fetch1()  # the row as a dict
+session_key("mousear-session-015", lab={"lab_id": "mlai"})
+```
+
+> [!NOTE]
+> Don't restrict ``Mouse`` by ``subject_code`` directly. It is a column of
+> ``Subject``, not ``Mouse``, so DataJoint ignores it and returns every mouse:
+>
+> ```python
+> Mouse & {"subject_code": "mouse-042"}  # wrong: returns every mouse
+> ```
+
 ### Registering an existing entry again
 
 The helpers take ``if_exists: DuplicatePolicy`` to control what happens when
