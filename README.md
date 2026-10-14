@@ -68,7 +68,8 @@ accounts SELECT only) and are created with the helpers in
 (acquisition accounts only). They are inserted locally by one team and later
 shared with the consortium. Helpers live in ``base_schemas.ingestion``:
 
-- ``register_subject`` — register a subject by code, return its key
+- ``register_subject`` — register a generic subject by code, return its key
+- ``register_mouse`` — register a mouse subject by code, return its key
 - ``register_session`` — register a session by code, linking **existing**
   subject keys (may be empty)
 
@@ -87,13 +88,23 @@ rejects free-text names but cannot catch every identifying code.
 from datetime import date
 from base_schemas.ingestion import register_session, register_subject
 
+lab = {"lab_id": "humanlab"}
+participant = register_subject("P042", "human", lab=lab)
+register_session("gaze-session-015", date(2026, 5, 1), lab=lab, subjects=[participant])
+```
+
+Mice are registered with ``register_mouse``, which also writes their ``Mouse`` row:
+
+```python
+from base_schemas.ingestion.mouse import register_mouse
+
 lab = {"lab_id": "mlai"}
-subject = register_subject("mouse-042", "mouse", lab=lab)
+mouse = register_mouse("mouse-042", "F", lab=lab)
 register_session(
     "mousear-session-015",
     date(2026, 5, 1),
     lab=lab,
-    subjects=[subject],
+    subjects=[mouse],
     project={"project_name": "gaze_v1"},
 )
 ```
@@ -106,9 +117,31 @@ from base_schemas.core import atomic
 from base_schemas.schemas.scene.session import Session
 
 with atomic(Session.connection):
-    subjects = [register_subject(code, "mouse", lab=lab) for code in ("mouse-043", "mouse-044")]
+    subjects = [register_mouse(code, "F", lab=lab) for code in ("mouse-043", "mouse-044")]
     register_session("mousear-session-016", date(2026, 5, 2), lab=lab, subjects=subjects)
 ```
+
+### Finding a row by its lab code
+
+Tables are keyed by the minted id, not by the lab's code. ``subject_key`` and
+``session_key`` look up the key of a code within a lab; use it as a restriction:
+
+```python
+from base_schemas.ingestion import session_key, subject_key
+from base_schemas.schemas.mouse.mouse import Mouse
+
+mouse = Mouse & subject_key("mouse-042", lab={"lab_id": "mlai"})  # restriction
+mouse.fetch1()  # the row as a dict
+session_key("mousear-session-015", lab={"lab_id": "mlai"})
+```
+
+> [!NOTE]
+> Don't restrict ``Mouse`` by ``subject_code`` directly. It is a column of
+> ``Subject``, not ``Mouse``, so DataJoint ignores it and returns every mouse:
+>
+> ```python
+> Mouse & {"subject_code": "mouse-042"}  # wrong: returns every mouse
+> ```
 
 ### Registering an existing entry again
 

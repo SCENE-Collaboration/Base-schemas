@@ -15,7 +15,7 @@ from base_schemas.core.types import DjKey, DjRow
 from base_schemas.ingestion.mouse._version import MOUSE_WRITER_VERSION
 from base_schemas.ingestion.normalization.code import normalize_code
 from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy, insert_tracked_row
-from base_schemas.ingestion.scene.subject import register_subject
+from base_schemas.ingestion.scene.subject import _register_subject
 from base_schemas.schemas.mouse.mouse import Mouse, Strain
 from base_schemas.schemas.mouse.row_meta import MouseRowMeta
 from base_schemas.schemas.provenance.deployment import Deployment
@@ -87,8 +87,12 @@ def register_mouse(
         if stored and stored.fetch1("subject_kind") != SubjectKind.MOUSE["subject_kind"]:
             kind = stored.fetch1("subject_kind")
             raise ValueError(f"subject {code!r} is registered as {kind!r}, not a mouse")
-        subject = register_subject(
-            code, SubjectKind.MOUSE, lab=lab, deployment=deployment_row, if_exists=if_exists
+        subject = _register_subject(
+            code,
+            SubjectKind.MOUSE["subject_kind"],
+            lab=lab,
+            deployment=deployment_row,
+            if_exists=if_exists,
         )
         row = {
             **subject,

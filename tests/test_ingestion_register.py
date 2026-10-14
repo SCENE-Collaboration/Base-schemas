@@ -263,7 +263,7 @@ def test_register_subject_mints_id_for_new_name(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "Env")
     stack, lookup, write = _subject_mocks()
     with stack:
-        key = subject_reg.register_subject(" P012 ", "mouse", lab={"lab_id": "mlai"})
+        key = subject_reg._register_subject(" P012 ", "mouse", lab={"lab_id": "mlai"})
 
     assert key == {"subject_id": "a" * 32}
     lookup.assert_called_once_with(subject_reg.Subject, {"lab_id": "mlai", "subject_code": "P012"})
@@ -287,9 +287,7 @@ def test_register_subject_existing_name_reuses_id(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
     stack, _, write = _subject_mocks(existing={"subject_id": "0" * 32})
     with stack:
-        key = subject_reg.register_subject(
-            "P012", {"subject_kind": "mouse"}, lab={"lab_id": "mlai"}
-        )
+        key = subject_reg._register_subject("P012", "mouse", lab={"lab_id": "mlai"})
     assert key == {"subject_id": "0" * 32}
     assert write.call_args.args[1]["subject_kind"] == "mouse"
 
@@ -297,4 +295,10 @@ def test_register_subject_existing_name_reuses_id(monkeypatch):
 def test_register_subject_rejects_empty_name(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
     with pytest.raises(ValueError, match="subject_code"):
-        subject_reg.register_subject("  ", "mouse", lab={"lab_id": "mlai"})
+        subject_reg._register_subject("  ", "mouse", lab={"lab_id": "mlai"})
+
+
+@pytest.mark.parametrize("kind", ["mouse", {"subject_kind": "mouse"}])
+def test_register_subject_refuses_mouse(kind):
+    with pytest.raises(ValueError, match="register_mouse"):
+        subject_reg.register_subject("P012", kind, lab={"lab_id": "mlai"})
