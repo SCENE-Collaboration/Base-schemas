@@ -31,13 +31,13 @@ def session_code(mouse_name: str, session_date: date, attempt: int) -> str:
     return f"{mouse_name}_{session_date.isoformat()}_{attempt}"
 
 
-def ensure_mlai_experimenter(experimenter_code: str, full_name: str, mail: str = ""):
+def ensure_mlai_experimenter(experimenter_code: str, experimenter_name: str, mail: str = ""):
     """Add an experimenter: the code is shared, name and mail stay in the lab."""
     key = {**MLAI_LAB_KEY, "experimenter_code": experimenter_code}
     with atomic(Experimenter.connection):
         Experimenter.insert1(key, skip_duplicates=True)
         ExperimenterInfo.insert1(
-            {**key, "full_name": full_name, "mail": mail}, skip_duplicates=True
+            {**key, "experimenter_name": experimenter_name, "mail": mail}, skip_duplicates=True
         )
     return key
 
@@ -73,7 +73,7 @@ def register_mlai_session(
     attempt: int,
     *,
     project: dict[str, str],
-    experimenter_code: str,
+    experimenter_name: str,
     rig_id: int,
     task_name: str,
     anesthesia_name: str = "awake",
@@ -90,6 +90,7 @@ def register_mlai_session(
     mouse = lookup_key(Subject, {**MLAI_LAB_KEY, "subject_code": mouse_name})
     if mouse is None:
         raise ValueError(f"unknown mouse {mouse_name!r}; register it with register_mlai_mouse")
+    experimenter = (ExperimenterInfo & {"experimenter_name": experimenter_name}).fetch1("KEY")
 
     with atomic(Session.connection):
         session = register_session(
@@ -98,7 +99,7 @@ def register_mlai_session(
             lab=MLAI_LAB_KEY,
             subjects=[mouse],
             project=project,
-            experimenter={**MLAI_LAB_KEY, "experimenter_code": experimenter_code},
+            experimenter=experimenter,
             if_exists=if_exists,
         )
         SessionInfo.insert1(

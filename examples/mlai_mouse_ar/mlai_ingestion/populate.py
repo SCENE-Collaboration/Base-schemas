@@ -46,7 +46,7 @@ def _manifest_entry(path: Path) -> dict[str, Any]:
         "mouse_name": str(raw["mouse_name"]),
         "session_date": str(raw["doe"])[:10],  # date, datetime or ISO string
         "attempt": int(raw["attempt"]),
-        "experimenter_code": str(raw["experimenter_name"]),
+        "experimenter_name": str(raw["experimenter_name"]),
         "rig_id": int(raw["rig_id"]),
         "task_name": str(raw["task_name"]),
         "anesthesia_name": str(raw.get("anesthesia_name", "awake")),

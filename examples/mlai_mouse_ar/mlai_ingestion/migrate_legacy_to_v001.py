@@ -48,18 +48,20 @@ def migrate_lookups() -> None:
         table.insert(legacy_table.to_dicts(), skip_duplicates=True)
 
 
-def migrate_mice(strain_map: dict[str, dict]) -> None:
+def migrate_mice(strain_map: dict[str, dict], experimenter_codes: dict[str, str]) -> None:
     """Register the legacy experimenters and mice, with their surgery, sacrifice and breeding rows.
 
     ``strain_map`` says what each legacy ``strain`` value means on the shared
     layer: ``{"strain": <Strain key or None>, "genotype": <text>}``. The legacy
     column mixed background strains and genotypes, so this is decided by hand.
+    ``experimenter_codes`` maps each legacy ``experimenter_name`` to its shared code.
     """
     from mlai_schemas.legacy import exp as exp_legacy
     from mlai_schemas.legacy import mice as mice_legacy
 
     for row in exp_legacy.Experimenter.to_dicts():
-        ensure_mlai_experimenter(row["experimenter_name"], row["full_name"], row["mail"])
+        name = row["experimenter_name"]
+        ensure_mlai_experimenter(experimenter_codes[name], name, row["mail"])
     for row in mice_legacy.Mouse.to_dicts():
         mapped = strain_map[row["strain"]]
         register_mlai_mouse(
@@ -106,7 +108,7 @@ def manifest_from_legacy(task_names: list[str] | None = None) -> list[dict[str, 
                 "mouse_name": row["mouse_name"],
                 "session_date": row["doe"].isoformat(),
                 "attempt": row["attempt"],
-                "experimenter_code": row["experimenter_name"],
+                "experimenter_name": row["experimenter_name"],
                 "rig_id": row["rig_id"],
                 "task_name": row["task_name"],
                 "anesthesia_name": row["anesthesia_name"],

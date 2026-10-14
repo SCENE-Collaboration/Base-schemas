@@ -80,7 +80,7 @@ c57 = ensure_strain({"strain_name": "C57BL/6J", "rrid": "RRID:IMSR_JAX:000664"})
 
 # --- 3. MLAI layer: insert an experimenter and a mouse ------------------------------------
 # Experimenter: only the code is shared. Name and mail stay in the lab table.
-ensure_mlai_experimenter("jdoe", full_name="Jane Doe", mail="jane.doe@example.org")
+ensure_mlai_experimenter("E01", "jdoe", mail="jane.doe@example.org")
 
 # Mouse: name, sex, date of birth, strain and genotype go to the shared tables;
 # the facility id is lab-only and goes to MouseInfo. One transaction.
@@ -101,7 +101,7 @@ register_mlai_mouse(
 day = dt.date(2026, 2, 11)
 session = {
     "project": mousear_key,
-    "experimenter_code": "jdoe",
+    "experimenter_name": "jdoe",
     "rig_id": 1,
     "task_name": "AR_visual_discrimination",
 }
@@ -262,7 +262,7 @@ legacy_exp.Session.insert1(
 # value means on the shared layer is decided here, once, by hand.
 strain_map = {"Cux2-Ai148": {"strain": c57, "genotype": "Cux2-CreERT2/wt; Ai148/wt"}}
 migrate.migrate_lookups()
-migrate.migrate_mice(strain_map)
+migrate.migrate_mice(strain_map, experimenter_codes={"user": "E02"})
 migrated = migrate.migrate_sessions(project=mousear_key, task_names=["AR_visual_discrimination"])
 print("migrated:", list((Session & migrated).to_arrays("session_code")))
 assert migrate.migrate_sessions(project=mousear_key) == []  # nothing new on a re-run

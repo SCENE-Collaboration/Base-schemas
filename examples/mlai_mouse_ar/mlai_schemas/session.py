@@ -17,8 +17,9 @@ class ExperimenterInfo(dj.Manual):
     definition = """  # personal details: stay in the lab database, never synced
     -> Experimenter
     ---
-    full_name: varchar(255)
+    experimenter_name: varchar(20)  # lab username as written by the GUI, e.g. jdoe
     mail='': varchar(128)
+    unique index (experimenter_name)
     """
 
 
