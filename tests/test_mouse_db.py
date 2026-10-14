@@ -108,6 +108,7 @@ def test_register_mouse_writes_subject_and_mouse_atomically(dj_connection, monke
     from base_schemas.ingestion.provenance import DuplicatePolicy
     from base_schemas.ingestion.scene import SCENE_WRITER_VERSION
     from base_schemas.ingestion.scene.admin import ensure_lab
+    from base_schemas.ingestion.scene.subject import _register_subject
     from base_schemas.schemas.mouse.mouse import Mouse
     from base_schemas.schemas.mouse.row_meta import MouseRowMeta
     from base_schemas.schemas.provenance.row_meta import SubjectRowMeta
@@ -145,8 +146,11 @@ def test_register_mouse_writes_subject_and_mouse_atomically(dj_connection, monke
     lower = register_mouse("reg-m4", "F", lab=lab_key, strain={"strain_name": "c57bl/6j"})
     assert (Mouse & lower).fetch1("strain_name") == "C57BL/6J"
 
-    # A subject registered earlier without a Mouse row gets one, under the same id.
-    earlier = register_subject("reg-m2", "mouse", lab=lab_key)
+    # Mouse subjects go through register_mouse; register_subject refuses them.
+    with pytest.raises(ValueError, match="register_mouse"):
+        register_subject("reg-m2", "mouse", lab=lab_key)
+    # A mouse subject without a Mouse row (direct insert, sync) gets one, under the same id.
+    earlier = _register_subject("reg-m2", "mouse", lab=lab_key)
     assert register_mouse("reg-m2", "U", lab=lab_key) == earlier
 
     # An unknown strain is refused before anything is written.

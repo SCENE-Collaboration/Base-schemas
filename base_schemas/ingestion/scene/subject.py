@@ -55,12 +55,29 @@ def register_subject(
         Subject primary key ``{subject_id: ...}``.
 
     Raises:
-        ValueError: If ``subject_code`` is not a valid code, ``deployment`` is omitted
+        ValueError: If ``subject_kind`` is ``mouse`` (use ``register_mouse``),
+            ``subject_code`` is not a valid code, ``deployment`` is omitted
             and ``SCENE_DEPLOYMENT_ID`` is unset, or ``if_exists`` rejects the
             existing subject.
     """
-    code = normalize_code(subject_code, field="subject_code", max_length=64)
     kind = subject_kind["subject_kind"] if isinstance(subject_kind, dict) else subject_kind
+    if kind == SubjectKind.MOUSE["subject_kind"]:
+        raise ValueError("register mouse subjects with register_mouse (writes the Mouse row too)")
+    return _register_subject(
+        subject_code, kind, lab=lab, deployment=deployment, if_exists=if_exists
+    )
+
+
+def _register_subject(
+    subject_code: str,
+    kind: str,
+    *,
+    lab: DjKey[Lab],
+    deployment: DjRow[Deployment] | None = None,
+    if_exists: DuplicatePolicy = DuplicatePolicy.VERIFY,
+) -> DjKey[Subject]:
+    """``register_subject`` without the kind check, for a kind's own helper."""
+    code = normalize_code(subject_code, field="subject_code", max_length=64)
     deployment_row = deployment if deployment is not None else deployment_row_from_settings()
 
     with atomic(Subject.connection):

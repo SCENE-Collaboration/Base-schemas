@@ -246,7 +246,8 @@ def test_ensure_lab_duplicate_policy_roundtrip(dj_connection, monkeypatch):
 
 def test_register_subjects_and_session_in_one_transaction(dj_connection, monkeypatch):
     from base_schemas.core.db import atomic
-    from base_schemas.ingestion import register_session, register_subject
+    from base_schemas.ingestion import register_session
+    from base_schemas.ingestion.scene.subject import _register_subject
     from base_schemas.schemas.provenance.row_meta import SessionRowMeta, SubjectRowMeta
     from base_schemas.schemas.scene.lab import Lab
     from base_schemas.schemas.scene.session import Session
@@ -259,7 +260,9 @@ def test_register_subjects_and_session_in_one_transaction(dj_connection, monkeyp
 
     def register_all(session_code: str):
         with atomic(Session.connection):
-            subjects = [register_subject(code, "mouse", lab=lab_key) for code in ("txn-1", "txn-2")]
+            subjects = [
+                _register_subject(code, "mouse", lab=lab_key) for code in ("txn-1", "txn-2")
+            ]
             return register_session(
                 session_code, dt.date(2026, 8, 1), lab=lab_key, subjects=subjects
             )
@@ -280,7 +283,7 @@ def test_register_subjects_and_session_in_one_transaction(dj_connection, monkeyp
 
     # A failure inside the block rolls back the subjects registered before it.
     with pytest.raises(ValueError, match="session_code"), atomic(Session.connection):
-        register_subject("txn-3", "mouse", lab=lab_key)
+        _register_subject("txn-3", "mouse", lab=lab_key)
         register_session("not a code", dt.date(2026, 8, 1), lab=lab_key)
     assert not (Subject & {**lab_key, "subject_code": "txn-3"})
 
@@ -289,8 +292,9 @@ def test_overwrite_keeps_subject_links_that_a_lab_table_references(dj_connection
     """OVERWRITE rewrites only the subject links that differ (FKs are ON DELETE RESTRICT)."""
     import datajoint as dj
     from base_schemas.core.config import load_settings
-    from base_schemas.ingestion import register_session, register_subject
+    from base_schemas.ingestion import register_session
     from base_schemas.ingestion.provenance import DuplicatePolicy
+    from base_schemas.ingestion.scene.subject import _register_subject
     from base_schemas.schemas.scene.lab import Lab
     from base_schemas.schemas.scene.session import Session
 
@@ -311,7 +315,7 @@ def test_overwrite_keeps_subject_links_that_a_lab_table_references(dj_connection
         note: varchar(64)
         """
 
-    noted, other = (register_subject(code, "mouse", lab=lab_key) for code in ("ref-1", "ref-2"))
+    noted, other = (_register_subject(code, "mouse", lab=lab_key) for code in ("ref-1", "ref-2"))
     key = register_session("ref-run", dt.date(2026, 9, 1), lab=lab_key, subjects=[noted, other])
     SubjectNote.insert1({**key, **noted, "note": "kept"})
 
