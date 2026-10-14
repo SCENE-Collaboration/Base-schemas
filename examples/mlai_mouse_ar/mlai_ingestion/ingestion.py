@@ -49,7 +49,7 @@ def register_mlai_mouse(
     mouse_id: int,
     date_of_birth: date | None = None,
     strain: dict[str, str] | None = None,
-    genotype: str = "",
+    genotype: str | None = None,
     if_exists: DuplicatePolicy = DuplicatePolicy.VERIFY,
 ):
     """Register a mouse on the shared tables, and its facility id in ``MouseInfo``."""

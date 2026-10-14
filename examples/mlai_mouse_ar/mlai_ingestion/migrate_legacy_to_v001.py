@@ -68,7 +68,7 @@ def migrate_mice(strain_map: dict[str, dict]) -> None:
             mouse_id=row["mouse_id"],
             date_of_birth=row["dob"],
             strain=mapped.get("strain"),
-            genotype=mapped.get("genotype", ""),
+            genotype=mapped.get("genotype"),
         )
     pairs = [
         (mice_legacy.Surgery, mouse.Surgery),
