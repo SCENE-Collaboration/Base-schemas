@@ -32,11 +32,25 @@ class Strain(dj.Manual):
 @mark_write_role(WriteRole.ACQUISITION)
 @schema
 class Mouse(dj.Manual):
-    """What every mouse lab records about a mouse; one row per mouse ``Subject``.
+    """Mouse-specific subject metadata; one row per mouse ``Subject`` .
 
-    The mouse is the ``Subject``: its identity (``subject_id``, ``subject_code``,
-    lab) lives there and is not repeated here. Labs add their own fields in
-    tables that reference ``Mouse``, never by redeclaring these.
+    Subject identity belongs to ``Subject`` and is not duplicated here.
+    ``subject_id`` is a minted UUID; the memorable lab-unique ``subject_code``
+    and lab membership are attributes of ``Subject``.
+
+    Example:
+        Resolve a lab-specific subject code to its key when looking up a mouse::
+
+            Mouse & subject_key("Tick", lab={"lab_id": "mlai"})
+
+            # Or equivalently:
+            Mouse & (Subject & {"lab_id": "mlai", "subject_code": "Tick"})
+
+    Note:
+        Do NOT restrict ``Mouse`` directly by ``subject_code``. It is not an
+        attribute of ``Mouse`` but of ``Subject``::
+
+            Mouse & {"subject_code": "Tick"} # <-- wrong: returns every mouse!
     """
 
     definition = """
