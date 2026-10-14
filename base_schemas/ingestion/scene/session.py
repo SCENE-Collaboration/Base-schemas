@@ -118,3 +118,23 @@ def register_session(
             writer_version=SCENE_WRITER_VERSION,
             parts={Session.Subject: [{"subject_id": sid} for sid in subject_ids]},
         )
+
+
+def session_key(session_code: str, *, lab: DjKey[Lab]) -> DjKey[Session]:
+    """Find a session by its lab code.
+
+    Args:
+        session_code: Lab code, e.g. ``"Tick_2026-02-11_1"``.
+        lab: Lab primary key, e.g. ``{"lab_id": "mlai"}``.
+
+    Returns:
+        Session primary key.
+
+    Raises:
+        ValueError: If the code is invalid or not registered in ``lab``.
+    """
+    code = normalize_code(session_code, field="session_code", max_length=128)
+    key = lookup_key(Session, {**lab, "session_code": code})
+    if key is None:
+        raise ValueError(f"no session {code!r} in lab {lab['lab_id']!r}")
+    return key

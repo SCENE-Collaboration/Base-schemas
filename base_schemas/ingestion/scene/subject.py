@@ -81,3 +81,23 @@ def register_subject(
             if_exists=if_exists,
             writer_version=SCENE_WRITER_VERSION,
         )
+
+
+def subject_key(subject_code: str, *, lab: DjKey[Lab]) -> DjKey[Subject]:
+    """Find a subject by its lab code.
+
+    Args:
+        subject_code: Lab code, e.g. ``"Tick"``.
+        lab: Lab primary key, e.g. ``{"lab_id": "mlai"}``.
+
+    Returns:
+        Subject primary key, e.g. for ``Mouse & subject_key("Tick", lab=lab)``.
+
+    Raises:
+        ValueError: If the code is invalid or not registered in ``lab``.
+    """
+    code = normalize_code(subject_code, field="subject_code", max_length=64)
+    key = lookup_key(Subject, {**lab, "subject_code": code})
+    if key is None:
+        raise ValueError(f"no subject {code!r} in lab {lab['lab_id']!r}")
+    return key
