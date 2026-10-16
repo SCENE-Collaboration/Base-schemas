@@ -11,7 +11,7 @@ from typing import Any
 import datajoint as dj
 
 from base_schemas.core.db import atomic
-from base_schemas.core.hash import content_hash
+from base_schemas.core.hash import HASH_VERSION, content_hash
 from base_schemas.core.types import DjKey, DjRow
 from base_schemas.core.versioning import assert_database_compatible
 from base_schemas.schemas.provenance.deployment import Deployment
@@ -23,7 +23,9 @@ class DuplicatePolicy(str, enum.Enum):
 
     DataJoint's ``skip_duplicates`` / ``replace`` flags only look at the primary
     key. This policy also compares the ``content_hash`` stored in the row-meta
-    stamp, so callers can detect a re-registration with different content.
+    stamp, so callers can detect a re-registration with different content. A
+    stamp of another ``HASH_VERSION`` is treated as missing: its hash is not
+    comparable.
 
     Attributes:
         REJECT: Raise ``ValueError``.
@@ -89,6 +91,7 @@ def insert_tracked_row(
         **{name: deployment[name] for name in Deployment.primary_key},
         "ingestion_version": writer_version,
         "content_hash": content_hash(payload),
+        "hash_version": HASH_VERSION,
         "updated_at": now,
     }
     # Origin fields are written with the first stamp only; updates keep them.
@@ -102,6 +105,7 @@ def insert_tracked_row(
             row_meta_table.insert1(first_stamp)
             return row_key
 
+        stamped = bool(row_meta_table & row_key)
         stored_hash = _stored_hash(row_meta_table, row_key)
         overwrite = _resolve_duplicate(
             if_exists,
@@ -118,10 +122,10 @@ def insert_tracked_row(
         tracked_table.update1(full_row)
         for part_table, part_rows in (parts or {}).items():
             _replace_parts(part_table, row_key, part_rows)
-        if stored_hash is None:
-            row_meta_table.insert1(first_stamp)
-        else:
+        if stamped:
             row_meta_table.update1(stamp)
+        else:
+            row_meta_table.insert1(first_stamp)
         return row_key
 
 
@@ -181,9 +185,14 @@ def _replace_parts(part_table: type[dj.Part], row_key: DjKey, part_rows: Sequenc
 
 
 def _stored_hash(row_meta_table: type[RowMetaBase], row_key: DjKey) -> str | None:
-    """Return the stamped ``content_hash`` for ``row_key``, or None when unstamped."""
+    """Return the stamped ``content_hash`` for ``row_key``.
+
+    None when unstamped or stamped with another ``HASH_VERSION``.
+    """
     stamp = row_meta_table & row_key
-    return stamp.fetch1("content_hash") if stamp else None
+    if not stamp or stamp.fetch1("hash_version") != HASH_VERSION:
+        return None
+    return stamp.fetch1("content_hash")
 
 
 def _resolve_duplicate(
@@ -200,7 +209,9 @@ def _resolve_duplicate(
         return False
     if if_exists is DuplicatePolicy.VERIFY:
         if stored_hash is None:
-            raise ValueError(f"{label} has no provenance stamp to verify against")
+            raise ValueError(
+                f"{label} has no provenance stamp of hash version {HASH_VERSION} to verify against"
+            )
         if stored_hash != new_hash:
             raise ValueError(f"{label} is already registered with a different content hash")
         return False

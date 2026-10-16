@@ -33,6 +33,9 @@ wrote it (and which first did, ``origin_deployment_id``), the writer version,
 and a ``content_hash`` of the row's content.
 The stamps are what later lets rows be compared and synced between databases.
 
+The stamp also records the ``hash_version`` (``base_schemas.core.hash.HASH_VERSION``)
+of the hash. A stamp of another hash version counts as missing for ``VERIFY``.
+
 Each ingestion package has its own writer version (``SCENE_WRITER_VERSION``,
 ``MOUSE_WRITER_VERSION``, …) in its ``_version.py``. Bump it when a helper in
 that package changes what it writes or what it hashes; the other packages are

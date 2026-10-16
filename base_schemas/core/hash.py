@@ -6,6 +6,9 @@ import hashlib
 import json
 from typing import Any
 
+# Stamped next to each content_hash. Bump when the canonicalization below changes.
+HASH_VERSION = 1
+
 
 def content_hash(payload: Any) -> str:
     """SHA-256 of a JSON-canonicalized payload (sorted keys, compact separators).

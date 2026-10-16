@@ -30,6 +30,7 @@ class RowMetaBase(dj.Manual):
     -> Deployment
     ingestion_version: varchar(32)
     content_hash: char(64)
+    hash_version: smallint unsigned  # HASH_VERSION that computed content_hash
     updated_at: datetime
     -> Deployment.proj(origin_deployment_id='deployment_id')
     created_at: datetime

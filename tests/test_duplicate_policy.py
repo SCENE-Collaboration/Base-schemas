@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
-from base_schemas.core.hash import content_hash
+from base_schemas.core.hash import HASH_VERSION, content_hash
 from base_schemas.ingestion.provenance import row_meta as row_meta_mod
 from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy, insert_tracked_row
 
@@ -134,6 +134,7 @@ def _stamp(payload=_PAYLOAD, **overrides):
         "origin_deployment_id": "old-dep",
         "ingestion_version": "0.0.0",
         "content_hash": content_hash(payload),
+        "hash_version": HASH_VERSION,
         **overrides,
     }
 
@@ -177,6 +178,7 @@ def test_new_key_is_inserted_and_stamped(deployment_table, policy):
     assert stamp["deployment_id"] == "dep1"
     assert stamp["ingestion_version"] == _WRITER_VERSION
     assert stamp["content_hash"] == content_hash(_PAYLOAD)
+    assert stamp["hash_version"] == HASH_VERSION
     assert stamp["origin_deployment_id"] == "dep1"
     assert stamp["created_at"] == stamp["updated_at"]
     assert deployment_table.rows[("dep1",)] == _DEPLOYMENT
@@ -238,6 +240,22 @@ def test_verify_raises_when_stamp_is_missing(deployment_table):
     _, meta = _tables(lab_exists=True)
     with pytest.raises(ValueError, match="no provenance stamp"):
         _insert(meta, DuplicatePolicy.VERIFY)
+
+
+def test_verify_raises_for_a_stamp_of_another_hash_version(deployment_table):
+    _, meta = _tables(lab_exists=True, stamp=_stamp(hash_version=HASH_VERSION - 1))
+    with pytest.raises(ValueError, match=f"no provenance stamp of hash version {HASH_VERSION}"):
+        _insert(meta, DuplicatePolicy.VERIFY)
+
+
+def test_overwrite_restamps_another_hash_version_without_warning(deployment_table):
+    old = _stamp({"lab_name": "other"}, hash_version=HASH_VERSION - 1)
+    _, meta = _tables(lab_exists=True, stamp=old)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        _insert(meta, DuplicatePolicy.OVERWRITE)
+    assert [name for name, _ in meta.calls] == ["update1"]
+    assert meta.rows[("mlai",)]["hash_version"] == HASH_VERSION
 
 
 def test_overwrite_updates_row_and_stamp_without_warning_when_hash_matches(deployment_table):
