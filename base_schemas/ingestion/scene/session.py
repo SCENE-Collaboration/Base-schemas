@@ -42,7 +42,10 @@ def _subject_ids(subjects: Sequence[DjKey[Subject]]) -> list[uuid.UUID]:
         subject_id = subject.get("subject_id")
         if not subject_id:
             raise ValueError(f"subject key {subject!r} has no subject_id")
-        subject_id = uuid.UUID(str(subject_id))
+        try:
+            subject_id = uuid.UUID(str(subject_id))
+        except ValueError:
+            raise ValueError(f"subject key {subject!r} has an invalid subject_id") from None
         if subject_id in subject_ids:
             raise ValueError(f"subject {subject_id!r} is listed more than once")
         subject_ids.append(subject_id)
@@ -95,7 +98,7 @@ def register_session(
 
     Raises:
         ValueError: If ``session_code`` is not a valid code, a subject key has no
-            ``subject_id`` or is listed twice, ``experimenter`` is of another
+            valid ``subject_id`` or is listed twice, ``experimenter`` is of another
             lab, ``deployment`` is omitted and
             ``SCENE_DEPLOYMENT_ID`` is unset, or ``if_exists`` rejects the
             existing session.

@@ -85,6 +85,7 @@ def test_register_session_rejects_empty_name(monkeypatch):
         ([{"subject_code": "P012"}], "has no subject_id"),
         ([{"subject_id": ""}], "has no subject_id"),
         ([{"subject_id": None}], "has no subject_id"),
+        ([{"subject_id": "P012"}], r"subject key \{'subject_id': 'P012'\} has an invalid"),
         ([{"subject_id": "a" * 32}, {"subject_id": "a" * 32}], "listed more than once"),
     ],
 )
