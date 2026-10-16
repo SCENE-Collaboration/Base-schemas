@@ -125,7 +125,7 @@ def _register_mocks(
     session_part = MagicMock()
 
     def _write(_meta, row, **_kwargs):
-        return {"lab_id": row["lab_id"], "session_id": row["session_id"]}
+        return {"session_id": row["session_id"]}
 
     stack = ExitStack()
     stack.enter_context(patch.object(session_reg.Session, "_connection", _fake_connection()))
@@ -155,7 +155,7 @@ def test_register_session_rejects_subject_of_another_lab(monkeypatch):
 def test_register_session_uses_settings_deployment(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
     monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "Env")
-    session_key = {"lab_id": "mlai", "session_id": uuid.UUID("abc" * 10 + "ab")}
+    session_key = {"session_id": uuid.UUID("abc" * 10 + "ab")}
     subjects = [{"subject_id": "a" * 32}]
 
     stack, session_part, write = _register_mocks(session_key["session_id"])
@@ -169,6 +169,7 @@ def test_register_session_uses_settings_deployment(monkeypatch):
 
     assert key == session_key
     session_row = {
+        "lab_id": "mlai",
         **session_key,
         "session_code": "morning-run",
         "session_date": date(2026, 5, 1),
@@ -186,7 +187,7 @@ def test_register_session_uses_settings_deployment(monkeypatch):
 
 def test_register_session_allows_zero_subjects(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
-    session_key = {"lab_id": "mlai", "session_id": uuid.UUID("d" * 32)}
+    session_key = {"session_id": uuid.UUID("d" * 32)}
     stack, session_part, write = _register_mocks(session_key["session_id"])
     with stack:
         key = session_reg.register_session(
@@ -240,7 +241,7 @@ def test_register_session_writes_optional_lookup_fks(monkeypatch):
 @pytest.mark.parametrize("policy", list(DuplicatePolicy))
 def test_register_session_existing_code_reuses_id(monkeypatch, policy):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
-    existing = {"lab_id": "mlai", "session_id": uuid.UUID("0" * 32)}
+    existing = {"session_id": uuid.UUID("0" * 32)}
     stack, _, write = _register_mocks(uuid.UUID("1" * 32), existing=existing)
     with stack:
         key = session_reg.register_session(

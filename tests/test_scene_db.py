@@ -179,9 +179,10 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
         project={"project_name": "reg_project"},
         experimenter={**lab_key, "experimenter_code": "reg_user"},
     )
-    assert key["lab_id"] == "reglab"
+    assert set(key) == {"session_id"}  # lab_id is not part of the key
     assert isinstance(key["session_id"], uuid.UUID)
     row = (Session & key).fetch1()
+    assert row["lab_id"] == "reglab"
     assert row["session_code"] == "morning-run"
     assert row["session_date"] == session_date
     assert row["project_name"] == "reg_project"

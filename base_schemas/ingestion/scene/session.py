@@ -94,7 +94,7 @@ def register_session(
             subject links.
 
     Returns:
-        Session primary key ``{lab_id, session_id}``.
+        Session primary key ``{session_id: ...}``.
 
     Raises:
         ValueError: If ``session_code`` is not a valid code, a subject key has no
