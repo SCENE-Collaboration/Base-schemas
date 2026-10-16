@@ -31,13 +31,19 @@ def session_code(mouse_name: str, session_date: date, attempt: int) -> str:
     return f"{mouse_name}_{session_date.isoformat()}_{attempt}"
 
 
+def _insert_if_not_stored(table, row: dict[str, Any]) -> None:
+    """Insert ``row`` unless its primary key is stored; a unique-index clash still raises."""
+    if not (table & {name: row[name] for name in table.primary_key}):
+        table.insert1(row)
+
+
 def ensure_mlai_experimenter(experimenter_code: str, experimenter_name: str, mail: str = ""):
     """Add an experimenter: the code is shared, name and mail stay in the lab."""
     key = {**MLAI_LAB_KEY, "experimenter_code": experimenter_code}
     with atomic(Experimenter.connection):
         Experimenter.insert1(key, skip_duplicates=True)
-        ExperimenterInfo.insert1(
-            {**key, "experimenter_name": experimenter_name, "mail": mail}, skip_duplicates=True
+        _insert_if_not_stored(
+            ExperimenterInfo, {**key, "experimenter_name": experimenter_name, "mail": mail}
         )
     return key
 
@@ -63,7 +69,7 @@ def register_mlai_mouse(
             genotype=genotype,
             if_exists=if_exists,
         )
-        MouseInfo.insert1({**mouse, "mouse_id": mouse_id}, skip_duplicates=True)
+        _insert_if_not_stored(MouseInfo, {**mouse, "mouse_id": mouse_id})
         return mouse
 
 

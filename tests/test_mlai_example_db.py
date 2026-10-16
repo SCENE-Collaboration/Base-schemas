@@ -36,11 +36,6 @@ def mlai(dj_connection, monkeypatch):
     return ingestion
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,  # only "DID NOT RAISE"; setup errors still fail
-    reason="skip_duplicates silently skips the unique-index clash on MouseInfo.mouse_id",
-)
 def test_register_mlai_mouse_taken_facility_id_raises(mlai):
     import datajoint as dj
     from base_schemas.schemas.scene.subject import Subject
@@ -49,3 +44,14 @@ def test_register_mlai_mouse_taken_facility_id_raises(mlai):
     with pytest.raises(dj.errors.DuplicateError):
         mlai.register_mlai_mouse("clash-2", "M", mouse_id=90001)
     assert not (Subject & {**mlai.MLAI_LAB_KEY, "subject_code": "clash-2"})  # rolled back
+
+
+def test_ensure_mlai_experimenter_taken_name_raises(mlai):
+    import datajoint as dj
+    from base_schemas.schemas.scene.session import Experimenter
+
+    key = mlai.ensure_mlai_experimenter("exp-clash-1", "clashname")
+    assert mlai.ensure_mlai_experimenter("exp-clash-1", "clashname") == key
+    with pytest.raises(dj.errors.DuplicateError):
+        mlai.ensure_mlai_experimenter("exp-clash-2", "clashname")
+    assert not (Experimenter & {**mlai.MLAI_LAB_KEY, "experimenter_code": "exp-clash-2"})
