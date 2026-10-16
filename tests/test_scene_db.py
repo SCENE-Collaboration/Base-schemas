@@ -82,12 +82,13 @@ def test_subject_project_and_multi_subject_session(dj_connection):
     )
     Experimenter.insert1({**lab_key, "experimenter_code": "jdoe"}, skip_duplicates=True)
 
-    session_key = {**lab_key, "session_id": "f0e1d2c3b4a5968778695a4b3c2d1e0f"}
+    session_key = {"session_id": "f0e1d2c3b4a5968778695a4b3c2d1e0f"}
     subject_ids = [
         uuid.UUID("11111111111111111111111111111111"),
         uuid.UUID("22222222222222222222222222222222"),
     ]
     session = {
+        **lab_key,
         **session_key,
         "session_code": "multi-subject-run",
         "session_date": dt.date(2026, 6, 1),
@@ -130,6 +131,7 @@ def test_register_session_rejects_subject_of_another_lab(dj_connection, monkeypa
     from base_schemas.schemas.scene.session import Session
 
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "test-local")
+    monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "test")
     own, other = {"lab_id": "subj_own"}, {"lab_id": "subj_other"}
     Lab.insert([own, other], skip_duplicates=True)
     mine = register_subject("own-1", "human", lab=own)
