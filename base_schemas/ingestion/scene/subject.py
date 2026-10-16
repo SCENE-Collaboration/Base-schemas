@@ -76,7 +76,7 @@ def _register_subject(
     deployment: DjRow[Deployment] | None = None,
     if_exists: DuplicatePolicy = DuplicatePolicy.VERIFY,
 ) -> DjKey[Subject]:
-    """``register_subject`` without the kind check, for a kind's own helper."""
+    """``register_subject`` for any kind; can be called by kind-specific helpers."""
     code = normalize_code(subject_code, field="subject_code", max_length=64)
     deployment_row = deployment if deployment is not None else deployment_row_from_settings()
 
@@ -84,6 +84,9 @@ def _register_subject(
         # insert_tracked_row matches on the primary key, which is minted: resolve an
         # existing code to its stored id first, so if_exists applies to re-registrations.
         existing = lookup_key(Subject, {**lab, "subject_code": code})
+        stored_kind = _stored_kind(existing) if existing else kind
+        if stored_kind != kind:
+            raise ValueError(f"subject {code!r} is registered as {stored_kind!r}, not {kind!r}")
         row = {
             "subject_id": existing["subject_id"] if existing else new_id(),
             **lab,
@@ -98,6 +101,11 @@ def _register_subject(
             if_exists=if_exists,
             writer_version=SCENE_WRITER_VERSION,
         )
+
+
+def _stored_kind(key: DjKey[Subject]) -> str:
+    """Return the stored ``subject_kind`` of ``key``."""
+    return (Subject & key).fetch1("subject_kind")
 
 
 def subject_key(subject_code: str, *, lab: DjKey[Lab]) -> DjKey[Subject]:

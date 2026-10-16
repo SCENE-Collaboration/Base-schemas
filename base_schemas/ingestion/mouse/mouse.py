@@ -13,14 +13,13 @@ from base_schemas.core.config import deployment_row_from_settings
 from base_schemas.core.db import atomic, lookup_key
 from base_schemas.core.types import DjKey, DjRow
 from base_schemas.ingestion.mouse._version import MOUSE_WRITER_VERSION
-from base_schemas.ingestion.normalization.code import normalize_code
 from base_schemas.ingestion.provenance.row_meta import DuplicatePolicy, insert_tracked_row
 from base_schemas.ingestion.scene.subject import _register_subject
 from base_schemas.schemas.mouse.mouse import Mouse, Strain
 from base_schemas.schemas.mouse.row_meta import MouseRowMeta
 from base_schemas.schemas.provenance.deployment import Deployment
 from base_schemas.schemas.scene.lab import Lab
-from base_schemas.schemas.scene.subject import Subject, SubjectKind
+from base_schemas.schemas.scene.subject import SubjectKind
 
 
 def mouse_meta_payload(row: dict[str, Any]) -> dict[str, Any]:
@@ -81,14 +80,9 @@ def register_mouse(
         ]  # stored spelling (names match case-insensitively)
 
     with atomic(Mouse.connection):
-        # Checked before any write: no policy may turn another kind into a mouse.
-        code = normalize_code(subject_code, field="subject_code", max_length=64)
-        stored = Subject & {**lab, "subject_code": code}
-        if stored and stored.fetch1("subject_kind") != SubjectKind.MOUSE["subject_kind"]:
-            kind = stored.fetch1("subject_kind")
-            raise ValueError(f"subject {code!r} is registered as {kind!r}, not a mouse")
+        # Refuses a code of another kind, under any policy, before anything is written.
         subject = _register_subject(
-            code,
+            subject_code,
             SubjectKind.MOUSE["subject_kind"],
             lab=lab,
             deployment=deployment_row,

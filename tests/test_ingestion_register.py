@@ -259,8 +259,11 @@ def test_register_session_joins_open_transaction(monkeypatch):
     write.assert_called_once()
 
 
-def _subject_mocks(*, existing: dict | None = None, minted: str = "a" * 32):
+def _subject_mocks(
+    *, existing: dict | None = None, minted: str = "a" * 32, stored_kind: str = "mouse"
+):
     stack = ExitStack()
+    stack.enter_context(patch.object(subject_reg, "_stored_kind", return_value=stored_kind))
     stack.enter_context(patch.object(subject_reg.Subject, "_connection", _fake_connection()))
     stack.enter_context(patch.object(subject_reg, "new_id", return_value=minted))
     lookup = stack.enter_context(patch.object(subject_reg, "lookup_key", return_value=existing))
@@ -312,6 +315,15 @@ def test_register_subject_rejects_empty_name(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
     with pytest.raises(ValueError, match="subject_code"):
         subject_reg._register_subject("  ", "mouse", lab={"lab_id": "mlai"})
+
+
+@pytest.mark.parametrize("policy", list(DuplicatePolicy))
+def test_register_subject_refuses_another_kind(monkeypatch, policy):
+    monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
+    stack, _, write = _subject_mocks(existing={"subject_id": "0" * 32}, stored_kind="mouse")
+    with stack, pytest.raises(ValueError, match="registered as 'mouse', not 'human'"):
+        subject_reg.register_subject("P012", "human", lab={"lab_id": "mlai"}, if_exists=policy)
+    write.assert_not_called()
 
 
 @pytest.mark.parametrize("kind", ["mouse", {"subject_kind": "mouse"}])
