@@ -6,7 +6,7 @@ Requires DataJoint >= 2.2 for `dj.Instance`.
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Mapping
+from collections.abc import Iterable, Mapping
 
 import datajoint as dj
 
@@ -14,8 +14,7 @@ import datajoint as dj
 def _require_instance_api():
     if not hasattr(dj, "Instance"):
         raise ImportError(
-            "base_schemas.scripts.sync requires datajoint>=2.2 "
-            "(dj.Instance was introduced in 2.2)"
+            "base_schemas.scripts.sync requires datajoint>=2.2 (dj.Instance was introduced in 2.2)"
         )
 
 
@@ -45,37 +44,32 @@ def sync_tables(
     Existing rows in the target are not modified. Tables are processed in the
     order they are provided; pass them in FK-dependency order.
 
-    Parameters
-    ----------
-    source_config, target_config : Mapping
-        Connection info. Keys: `host`, `user`, `password`; optional: `port`, `use_tls`.
-    tables : Iterable[dj.Table | str | tuple[str, str]]
-        Each entry can be one of:
-          * a DataJoint table class — its `full_table_name` is used for both
-            source and target;
-          * a `full_table_name` string (e.g.
-            "`mice`.`#mouse_score_sheet__body_condition`") — used for both
-            source and target. Use this to override the class-derived name
-            when a server uses a non-default naming (e.g. legacy DataJoint
-            named tables with double underscores for class names containing
-            underscores);
-          * a `(source_name, target_name)` tuple — when the same logical
-            table has different physical names on the two servers (e.g.
-            legacy `__` on the source vs. DJ 2.2 `_` on the target).
-        Class instances can be bound to either server's connection (or to
-        none, if imported under USE_LAZY_SCHEMA).
-    restrictions : Mapping, optional
-        Per-table DataJoint restriction applied to the source before fetching,
-        e.g. {Session: "doe >= '2026-01-01'"} for incremental syncs. Keys must
-        match the entry passed in `tables` — the class object, the same
-        `full_table_name` string, or the same `(src_name, tgt_name)` tuple.
+    Args:
+        source_config: Connection info. Keys: ``host``, ``user``, ``password``;
+            optional: ``port``, ``use_tls``.
+        target_config: Same shape as ``source_config``, for the destination server.
+        tables: Each entry can be one of:
 
-    Returns
-    -------
-    dict[str, dict]
-        Maps source `full_table_name` to {"fetched": int, "inserted": int,
-        "target": str}. The "target" key holds the target full_table_name
-        (equal to source unless the entry was a (src, tgt) tuple).
+            * a DataJoint table class — its ``full_table_name`` is used for both
+              source and target;
+            * a ``full_table_name`` string (e.g. a quoted MySQL
+              ``db`.`table`` name) — used for both source and target when
+              servers use non-default naming;
+            * a ``(source_name, target_name)`` tuple — when the same logical
+              table has different physical names on the two servers.
+
+            Class instances can be bound to either server's connection (or to
+            none, if imported unbound / without ``AUTO_ACTIVATE``).
+        restrictions: Optional per-table DataJoint restriction applied to the
+            source before fetching, e.g. ``{Session: "doe >= '2026-01-01'"}``.
+            Keys must match the entry passed in ``tables``.
+        logger: Logger for sync progress; defaults to this module's logger.
+
+    Returns:
+        Map of source ``full_table_name`` to
+        ``{"fetched": int, "inserted": int, "target": str}``. The ``target``
+        key holds the target full table name (equal to source unless the entry
+        was a ``(src, tgt)`` tuple).
     """
     _require_instance_api()
     logger = logger or logging.getLogger(__name__)

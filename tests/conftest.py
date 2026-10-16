@@ -1,7 +1,8 @@
+"""Shared pytest fixtures for base_schemas unit tests."""
+
 import os
 import sys
 import uuid
-from importlib import import_module, reload
 from pathlib import Path
 
 import datajoint as dj
@@ -12,10 +13,15 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
-TEST_SCHEMA_PREFIX = os.environ.setdefault(
-    "DJ_SCHEMA_PREFIX",
-    f"test_{uuid.uuid4().hex[:8]}_",
-)
+# Tests always run under their own prefix, never the DJ_SCHEMA_PREFIX of the
+# environment (e.g. ``dev_`` exported from .env). Override with TEST_SCHEMA_PREFIX.
+TEST_SCHEMA_PREFIX = os.environ.get("TEST_SCHEMA_PREFIX") or f"test_{uuid.uuid4().hex[:8]}_"
+if not TEST_SCHEMA_PREFIX.startswith("test_"):
+    raise pytest.UsageError(
+        f"TEST_SCHEMA_PREFIX {TEST_SCHEMA_PREFIX!r} must start with 'test_' "
+        "so tests never write into a dev or production schema"
+    )
+os.environ["DJ_SCHEMA_PREFIX"] = TEST_SCHEMA_PREFIX
 
 
 @pytest.fixture(scope="session")
@@ -30,30 +36,5 @@ def dj_connection():
     if backend:
         dj.config["database.backend"] = backend
 
-    # Verify connection works
     connection = dj.conn()
-
     yield connection
-
-
-@pytest.fixture
-def base_schema_context(dj_connection):
-    """Import test-prefixed schemas and drop them after each test."""
-    mice_module = import_module("base_schemas.schemas.mice")
-    mice_module = reload(mice_module)
-
-    exp_module = import_module("base_schemas.schemas.exp")
-    exp_module = reload(exp_module)
-
-    yield {
-        "Mouse": mice_module.Mouse,
-        "Session": exp_module.Session,
-        "SessionScoreSheet": exp_module.SessionScoreSheet,
-        "MouseScoreSheet": mice_module.MouseScoreSheet,
-        "MouseScoreSheet_WaterRestriction": mice_module.MouseScoreSheet_WaterRestriction,
-        "schema_mouse": mice_module.schema,
-        "schema_exp": exp_module.schema,
-    }
-
-    exp_module.schema.drop(prompt=False)
-    mice_module.schema.drop(prompt=False)

@@ -5,23 +5,73 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "base-schemas"
 version = "2.0.0"
-description = "Mathis lab base DataJoint schemas"
+description = "SCENE shared DataJoint base schemas (legacy mice/exp + emerging SCENE spine)"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
-    # datajoint 2.2 dropped Python 3.8; pin to <2.2 there and require >=2.2 elsewhere.
-    # sync.py requires datajoint>=2.2 (dj.Instance); enforced at runtime on 3.8.
-    "datajoint>=0.13,<2.2; python_version < '3.9'",
-    "datajoint>=2.2; python_version >= '3.9'",
+    "datajoint>=2.2",
     "packaging", # required by datajoint > 1
+    "typing_extensions>=4.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=3.5",
+    "pytest>=7",
+    "ruff>=0.15",
 ]
 
 [tool.setuptools.packages.find]
 include = ["base_schemas*"]
 
 [tool.pytest.ini_options]
+markers = [
+    "db: needs a live DataJoint/MySQL connection (DJ_HOST, etc.)",
+]
 filterwarnings = [
     "ignore:fetch\\(\\) is deprecated in DataJoint 2\\.0.*:DeprecationWarning",
     "ignore:Positional inserts \\(tuples/lists\\) are deprecated and will be removed in a future version\\..*:DeprecationWarning",
     "ignore:Table class name `.*` contains underscores\\. CamelCase names without underscores are recommended\\.:UserWarning",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["base_schemas", "tests"]
+# Honor the excludes below also for paths passed explicitly (pre-commit does that).
+force-exclude = true
+extend-exclude = [
+    # Frozen legacy Mathis-lab schemas — keep DJ definitions as-is.
+    "examples/mlai_mouse_ar/mlai_schemas/legacy",
+    # Demo notebooks import halfway and print long lines on purpose.
+    "*.ipynb",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+    "W",
+    "D",  # pydocstyle — Google form when a docstring exists
+]
+ignore = [
+    # Missing docstrings are fine; enforce style only when one is present (D2xx/D4xx).
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"base_schemas/scripts/*.py" = ["E501"]
+"tests/**/*.py" = ["E501", "D"]
+"examples/mlai_mouse_ar/**/*.py" = ["D"]

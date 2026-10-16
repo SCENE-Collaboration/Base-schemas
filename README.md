@@ -1,65 +1,301 @@
+# SCENE Base-schemas
 
-# Mathis lab base tables for all DataJoint pipelines
+Shared [DataJoint](https://datajoint.com/) table definitions for SCENE pipelines.
+Keeping them in one package keeps provenance and session structure aligned across labs.
 
-The `base_schemas` folder is a python package that contains the definition of main schemas (ensemble of tables) that are shared across distinct pipelines. The actual main schemas are `mice` and `exp`, and they are illustrated in the following diagram:
+Current package schemas (placeholders; definitions may change):
 
-![base_schemas_ERD](./base_schemas_erd.png)
+- `base_schemas.schemas.scene.lab` — `Lab`
+- `base_schemas.schemas.scene.subject` — `SubjectKind`, `Subject`
+- `base_schemas.schemas.scene.project` — `Project`
+- `base_schemas.schemas.scene.session` — `Experimenter`, `Session`
+- `base_schemas.schemas.provenance.deployment` — `Deployment`
+- `base_schemas.schemas.provenance.row_meta` — `LabRowMeta`, `ProjectRowMeta`,
+  `SubjectRowMeta`, `SessionRowMeta` (one stamp per tracked row: last and
+  origin deployment, writer version, content hash)
 
-Main schemas definitions should be the same for all pipelines, so the organization via separate package helps to isolate the code during development and deployment.
+Also included:
+
+- `base_schemas.scripts.sync` — copy table rows between servers
+- `base_schemas.ingestion` — supported write path (`register_session`, …);
+  the helper packages mirror `base_schemas.schemas`:
+  - `base_schemas.ingestion.scene` — `register_subject`, `register_session`;
+  - `base_schemas.ingestion.scene.admin` — catalog ensures (`ensure_lab`, `ensure_project`; admin DB role);
+  - `base_schemas.ingestion.mouse` — `ensure_strain`, `register_mouse`;
+  - `base_schemas.ingestion.provenance` — row stamping and `DuplicatePolicy`;
+
+## Inserting rows
+
+Write through the helpers in ``base_schemas.ingestion`` rather than calling
+``insert1`` directly. Every helper writes the row and a row-meta stamp
+(``LabRowMeta``, ``SessionRowMeta``, …) that records which deployment last
+wrote it (and which first did, ``origin_deployment_id``), the writer version,
+and a ``content_hash`` of the row's content.
+The stamps are what later lets rows be compared and synced between databases.
+
+The stamp also records the ``hash_version`` (``base_schemas.core.hash.HASH_VERSION``)
+of the hash. A stamp of another hash version counts as missing for ``VERIFY``.
+
+Each ingestion package has its own writer version (``SCENE_WRITER_VERSION``,
+``MOUSE_WRITER_VERSION``, …) in its ``_version.py``. Bump it when a helper in
+that package changes what it writes or what it hashes; the other packages are
+not affected.
+
+### Deployment id and label
+
+Set ``SCENE_DEPLOYMENT_ID`` once per database (optional
+``SCENE_DEPLOYMENT_LABEL``). The helpers read it when ``deployment`` is not
+passed explicitly, and insert the matching ``Deployment`` row on first use.
+
+The id is a stable, opaque token: pick a short slug that names the lab and the
+role of the database, e.g. ``mlai-prod`` for the production database of the
+Mathis Lab of Adaptive Intelligence, or ``mlai-dev-jaap`` for a private
+development copy. Do not derive it from a hostname or the schema prefix; those
+may change, the id must not. The label is free text for humans. It is stored
+by the first write and should not be changed later (ignored with a warning).
+
+### Admin catalog tables
+
+``Lab`` and ``Project`` are catalog tables shared across the collaboration. They
+are marked ``SyncAuthority.CENTRAL`` and ``WriteRole.ADMIN`` (acquisition
+accounts SELECT only) and are created with the helpers in
+``base_schemas.ingestion.scene.admin``:
+
+- ``ensure_lab`` — insert a lab row, return its key
+- ``ensure_project`` — insert a project row, return its key
+
+``Experimenter`` is a plain lookup of pseudonymous codes per lab; seed it directly.
+
+### Pipeline writes
+
+``Subject`` and ``Session`` are everyday writes, marked ``WriteRole.ACQUISITION``
+(acquisition accounts only). They are inserted locally by one team and later
+shared with the consortium. Helpers live in ``base_schemas.ingestion``:
+
+- ``register_subject`` — register a generic subject by code, return its key
+- ``register_mouse`` — register a mouse subject by code, return its key
+- ``register_session`` — register a session by code, linking **existing**
+  subject keys (may be empty)
+
+Subjects and sessions are identified by a code the lab chooses
+(``subject_code``, ``session_code``), unique within the lab. The globally
+unique ``subject_id`` / ``session_id`` is minted by the helper (UUID4) the
+first time a code is registered. Registering the same code again reuses the
+stored id, so re-running an ingestion does not create duplicates.
+
+Codes are shared with the consortium, so they must be **pseudonyms**: never a
+real name, initials, birth date or other identifying information. The helpers
+accept only ASCII letters, digits, ``.``, ``_`` and ``-`` (no spaces), which
+rejects free-text names but cannot catch every identifying code.
+
+```python
+from datetime import date
+from base_schemas.ingestion import register_session, register_subject
+
+lab = {"lab_id": "humanlab"}
+participant = register_subject("P042", "human", lab=lab)
+register_session("gaze-session-015", date(2026, 5, 1), lab=lab, subjects=[participant])
+```
+
+Mice are registered with ``register_mouse``, which also writes their ``Mouse`` row:
+
+```python
+from base_schemas.ingestion.mouse import register_mouse
+
+lab = {"lab_id": "mlai"}
+mouse = register_mouse("mouse-042", "F", lab=lab)
+register_session(
+    "mousear-session-015",
+    date(2026, 5, 1),
+    lab=lab,
+    subjects=[mouse],
+    project={"project_name": "gaze_v1"},
+)
+```
+
+Each helper is atomic and joins a transaction that is already open. To make
+several registrations all-or-nothing, wrap them in ``atomic``:
+
+```python
+from base_schemas.core import atomic
+from base_schemas.schemas.scene.session import Session
+
+with atomic(Session.connection):
+    subjects = [register_mouse(code, "F", lab=lab) for code in ("mouse-043", "mouse-044")]
+    register_session("mousear-session-016", date(2026, 5, 2), lab=lab, subjects=subjects)
+```
+
+### Finding a row by its lab code
+
+Tables are keyed by the minted id, not by the lab's code. ``subject_key`` and
+``session_key`` look up the key of a code within a lab; use it as a restriction:
+
+```python
+from base_schemas.ingestion import session_key, subject_key
+from base_schemas.schemas.mouse.mouse import Mouse
+
+mouse = Mouse & subject_key("mouse-042", lab={"lab_id": "mlai"})  # restriction
+mouse.fetch1()  # the row as a dict
+session_key("mousear-session-015", lab={"lab_id": "mlai"})
+```
+
+With ``SCENE_LAB_ID=mlai`` set, ``lab`` can be omitted in these lookups:
+``subject_key("mouse-042")``. The write helpers (``register_*``) always take
+an explicit ``lab``.
+
+> [!NOTE]
+> Don't restrict ``Mouse`` by ``subject_code`` directly. It is a column of
+> ``Subject``, not ``Mouse``, so DataJoint ignores it and returns every mouse:
+>
+> ```python
+> Mouse & {"subject_code": "mouse-042"}  # wrong: returns every mouse
+> ```
+
+### Registering an existing entry again
+
+The helpers take ``if_exists: DuplicatePolicy`` to control what happens when
+the entry already exists (same primary key for ``ensure_*``, same code within
+the lab for ``register_*``). Unlike DataJoint's ``skip_duplicates`` /
+``replace``, this policy compares the ``content_hash`` in the stored stamp,
+detecting changed content:
+
+| Policy | When the entry already exists |
+|--------|-------------------------------|
+| ``REJECT`` (default for ``ensure_*``) | raise ``ValueError`` |
+| ``SKIP`` | leave row and stamp untouched |
+| ``VERIFY`` (default for ``register_*``) | leave untouched when the stamp hash matches; raise when it differs or no stamp exists |
+| ``OVERWRITE`` | overwrite the row in place as an insert would store it (omitted fields reset to their default), and its stamp (sessions: also their subject links); warn when the hash changed |
+
+```python
+from base_schemas.ingestion.scene import admin
+from base_schemas.ingestion.provenance import DuplicatePolicy
+
+admin.ensure_lab({"lab_id": "mlai", "lab_name": "Mathis Lab"}, if_exists=DuplicatePolicy.VERIFY)
+```
+
+### Design rule: one transaction per write
+
+A function that writes to more than one table performs all of its writes
+inside a single transaction (``atomic``). Nothing else happens inside it: no
+file reading, no computation, no schema activation. Read and validate the
+input first, then write. This keeps a failed write from leaving partial rows,
+and keeps transactions (and their locks) short. The insertion helpers follow
+this rule; ingestion code built on them (e.g. a manifest loader) should too.
+
+## Table markers
+
+Two optional markers declare intent for whoever administers a database; this
+package does not act on them. Read the markers with
+``sync_authority_of`` and ``write_role_of``.
+
+> [!IMPORTANT]
+> This package only defines the markers; it does not enforce them. Grants and
+> sync jobs differ per deployment and are the database administrator's to set up.
+
+``SyncAuthority`` names which database holds the truth: ``CENTRAL`` (consortium
+catalogs; central database has authority), ``ORIGIN`` (the site that acquired the
+data has authority), ``SHARED`` (append-only, either direction inserts and never
+overwrites).
+
+``WriteRole`` restricts INSERT: ``ADMIN`` or ``ACQUISITION``, and a marker
+admits only that role. No marker means unrestricted. ``Lab`` and ``Project`` are
+``ADMIN``; ``Subject`` and ``Session`` are ``ACQUISITION``. A part follows its
+master and a row-meta table follows the table it tracks, so those need no
+marker of their own. Lab-defined tables need none either.
+
+## Schema activation
+
+Schemas stay unbound by default (no DB needed on import). Set
+``AUTO_ACTIVATE=1`` to bind eagerly, or activate explicitly:
+
+```python
+from base_schemas.core import SCENE_REGISTRY, activate_schema, load_settings
+
+schema = SCENE_REGISTRY.make_schema("scene")  # unbound unless AUTO_ACTIVATE
+# @schema class Lab ...
+SCENE_REGISTRY.activate("scene")  # uses create_tables stored at make_schema
+SCENE_REGISTRY.activate_all()
+
+# Or bind any dj.Schema without the registry:
+activate_schema(schema, "scene")
+
+# A suffix is registered once (make_schema("scene") again raises); reuse it with get
+SCENE_REGISTRY.get("scene") is schema
+
+# Accessing the registry content
+"scene" in SCENE_REGISTRY.schemas  # dict[str, dj.Schema]
+SCENE_REGISTRY.get("scene") is schema
+```
+
+| Variable | Meaning |
+|----------|---------|
+| `DJ_SCHEMA_PREFIX` | Prefix for DB names (include trailing `_`) |
+| `AUTO_ACTIVATE` | If truthy, `make_schema` / Lab / Session bind on import |
+| `SCENE_DEPLOYMENT_ID` | Stable id of this database; default `deployment` for all insertion helpers |
+| `SCENE_DEPLOYMENT_LABEL` | Optional human label stored on `Deployment` with the env default |
+| `SCENE_LAB_ID` | Optional lab of this deployment; default `lab` for `subject_key` / `session_key` (not for writes) |
+
+## Examples
+
+- [`examples/scene_demo.ipynb`](examples/scene_demo.ipynb): architectural *how-to*, to demonstrate the shared tables,
+the write helpers, and how to extend from a shared layer to lab-specific tables.
+- [`examples/mlai_mouse_ar`](examples/mlai_mouse_ar): example integration of the shared layer into a previously existing
+pipeline (M-lab Mouse AR pipeline). Start at
+  [`mouse_ar_example.py`](examples/mlai_mouse_ar/mouse_ar_example.py).
+
+> [!NOTE]
+> Example code is not installed or tested by the package. Integration tests are put in place once packaging is finalized.
 
 ## Installation
 
-### From source code
+```bash
+# development
+pip install -e ".[dev]"
 
-For the development version, clone the repository, and run
-
-```
-# for development
-pip install -e .
-
-# for usage
+# usage
 pip install .
 ```
 
-Alternatively, the package can be directly installed using one of the following commands (`main` can be replaced by a commit hash or branch):
+From GitHub (`main` can be a commit hash or branch):
 
-```
+```bash
 pip install "git+ssh://git@github.com/SCENE-Collaboration/Base-schemas.git@main"
 pip install "git+https://github.com/SCENE-Collaboration/Base-schemas.git@main"
 ```
 
-### Building a distribution
+Build a wheel:
 
-To build an installable package (source release or wheel), run:
-
-```
+```bash
 pip install build
 python -m build .
+pip install dist/base_schemas-*.whl
 ```
 
-which will create the release files in the `dist/` subfolder.
-For example, for version "1.1.0", it will create:
+## Quickstart (Docker)
 
-```
-dist
-dist/base_schemas-1.1.0.tar.gz
-dist/base_schemas-1.1.0-py3-none-any.whl
-```
-
-The wheel can be directly installed with pip:
-
-```
-pip install dist/base_schemas-1.1.0-py3-none-any.whl
+```bash
+make init          # once: copy .env.example → .env, then edit as needed
+make build_all
+make up_all
+make client_bash
 ```
 
-This workflow is useful when e.g. distributing package versions for use within a Docker container.
+Host port for MySQL is `MYSQL_PUBLISH_PORT` in `.env` (default `3306`).
+Schema names use `DJ_SCHEMA_PREFIX`.
 
-## Usage
+MySQL applies `MYSQL_ROOT_PASSWORD` only when the data directory
+(`DATABASE_MOUNT`) is first initialized. If you change it in `.env` afterwards,
+the `db` container never becomes healthy: change the password inside MySQL, or
+remove the data directory to start from an empty database.
 
-``` python
-from base_schemas.schemas import mice, exp
-print(mice.Mouse())
+## Tests
+
+```bash
+make test          # unit tests: pytest tests/ -m "not db"
+make test-db       # MySQL via compose, then pytest tests/ -m db
 ```
+
+Mark live-DB tests with `@pytest.mark.db` (registered in `pyproject.toml`).
 
 ## Acknowledgments
 

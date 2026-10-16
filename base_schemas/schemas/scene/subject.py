@@ -1,0 +1,50 @@
+"""SCENE-shared subject identity."""
+
+import datajoint as dj
+
+from base_schemas.core.access_markers import WriteRole, mark_write_role
+from base_schemas.schemas.scene._schema import schema
+from base_schemas.schemas.scene.lab import Lab  # noqa: F401  # FK: Subject -> Lab
+
+
+@schema
+class SubjectKind(dj.Lookup):
+    """Extensible vocabulary for ``Subject.kind`` — insert a row to add a kind.
+
+    The built-in kinds are class attributes, e.g. ``SubjectKind.MOUSE``.
+    """
+
+    definition = """
+    subject_kind: varchar(32)  # e.g. human, mouse, other
+    ---
+    kind_description='': varchar(255)
+    """
+
+    HUMAN = {"subject_kind": "human", "kind_description": "human participant"}
+    MOUSE = {"subject_kind": "mouse", "kind_description": "mouse model"}
+    BAT = {"subject_kind": "bat", "kind_description": "bat model"}
+    RL_AGENT = {"subject_kind": "rl-agent", "kind_description": "reinforcement learning agent"}
+    OTHER = {"subject_kind": "other", "kind_description": "other / unspecified"}
+
+    contents = [HUMAN, MOUSE, BAT, RL_AGENT, OTHER]
+
+
+@mark_write_role(WriteRole.ACQUISITION)
+@schema
+class Subject(dj.Manual):
+    """Individual identity (human, mouse, other), registered by one lab.
+
+    ``subject_id`` is minted by ``register_subject``; the lab refers to the
+    subject by ``subject_code``, which is unique within that lab. The code is
+    a pseudonym: never a real name, initials, birth date or other identifying
+    information (it is shared with the consortium).
+    """
+
+    definition = """
+    subject_id: uuid  # minted UUID4; never renamed
+    ---
+    -> Lab
+    subject_code: varchar(64)  # pseudonymous lab code, e.g. P012; never a real name
+    -> SubjectKind
+    unique index (lab_id, subject_code)
+    """

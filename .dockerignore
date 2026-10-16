@@ -1,0 +1,6 @@
+# Keep local database data and secrets out of the image (compose mounts ./ at runtime).
+.dbdata
+.env
+.git
+**/__pycache__
+*.egg-info

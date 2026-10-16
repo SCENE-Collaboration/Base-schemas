@@ -1,0 +1,50 @@
+"""SCENE-shared session spine (Experimenter, Session)."""
+
+from __future__ import annotations
+
+import datajoint as dj
+
+from base_schemas.core.access_markers import WriteRole, mark_write_role
+from base_schemas.schemas.scene._schema import schema
+from base_schemas.schemas.scene.lab import Lab  # noqa: F401  # FK: Session -> Lab
+from base_schemas.schemas.scene.project import Project  # noqa: F401
+from base_schemas.schemas.scene.subject import Subject  # noqa: F401
+
+
+@schema
+class Experimenter(dj.Manual):
+    """Person who ran a session, known by a code within one lab."""
+
+    definition = """
+    -> Lab
+    experimenter_code: varchar(64)  # pseudonymous lab code; never a real name
+    """
+
+
+@mark_write_role(WriteRole.ACQUISITION)
+@schema
+class Session(dj.Manual):
+    """One data-collection session within a lab.
+
+    ``session_id`` is minted by ``register_session``; the lab refers to the
+    session by ``session_code``, which is unique within that lab. Like
+    ``subject_code``, it must not contain identifying information.
+    """
+
+    definition = """
+    session_id: uuid  # minted UUID4; never renamed
+    ---
+    -> Lab
+    session_code: varchar(128)  # pseudonymous lab code; never a real name
+    session_date: date
+    -> [nullable] Project
+    -> [nullable] Experimenter
+    unique index (lab_id, session_code)
+    """
+
+    class Subject(dj.Part):  # noqa: F811
+        definition = """
+        # subjects that participated in this session
+        -> master
+        -> Subject
+        """
