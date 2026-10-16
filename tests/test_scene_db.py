@@ -123,6 +123,22 @@ def test_session_links_only_an_experimenter_of_its_own_lab(dj_connection):
     assert (Session & own).fetch1("experimenter_code") is None
 
 
+def test_register_session_rejects_subject_of_another_lab(dj_connection, monkeypatch):
+    from base_schemas.ingestion import register_session, register_subject
+    from base_schemas.schemas.scene.lab import Lab
+    from base_schemas.schemas.scene.session import Session
+
+    monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "test-local")
+    own, other = {"lab_id": "subj_own"}, {"lab_id": "subj_other"}
+    Lab.insert([own, other], skip_duplicates=True)
+    mine = register_subject("own-1", "human", lab=own)
+    theirs = register_subject("other-1", "human", lab=other)
+
+    with pytest.raises(ValueError, match=r"\['other-1'\] are not of lab 'subj_own'"):
+        register_session("cross-1", dt.date(2026, 1, 1), lab=own, subjects=[mine, theirs])
+    assert not (Session & {**own, "session_code": "cross-1"})
+
+
 def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     from base_schemas.core.hash import content_hash
     from base_schemas.ingestion import SCENE_WRITER_VERSION, register_session

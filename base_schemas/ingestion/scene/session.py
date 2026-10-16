@@ -47,6 +47,14 @@ def _subject_ids(subjects: Sequence[DjKey[Subject]]) -> list[str]:
     return subject_ids
 
 
+def _foreign_subject_codes(subject_ids: Sequence[str], lab: DjKey[Lab]) -> list[str]:
+    """Return the codes of the given subjects that are registered by another lab."""
+    if not subject_ids:
+        return []
+    subjects = Subject & [{"subject_id": sid} for sid in subject_ids]
+    return sorted((subjects - lab).fetch("subject_code"))
+
+
 def register_session(
     session_code: str,
     session_date: date,
@@ -98,6 +106,9 @@ def register_session(
     deployment_row = deployment if deployment is not None else deployment_row_from_settings()
 
     with atomic(Session.connection):
+        foreign = _foreign_subject_codes(subject_ids, lab)
+        if foreign:
+            raise ValueError(f"subjects {foreign!r} are not of lab {lab['lab_id']!r}")
         # insert_tracked_row matches on the primary key, which is minted: resolve an
         # existing code to its stored id first, so if_exists applies to re-registrations.
         existing = lookup_key(Session, {**lab, "session_code": code})

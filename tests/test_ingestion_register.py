@@ -114,8 +114,8 @@ def _fake_connection():
     return conn
 
 
-def _register_mocks(session_id: str, *, existing: dict | None = None):
-    """No-op transaction, minted id, mocked lookup, Session.Subject and insert_tracked_row."""
+def _register_mocks(session_id: str, *, existing: dict | None = None, foreign: list | None = None):
+    """No-op transaction, minted id, mocked lookups, Session.Subject and insert_tracked_row."""
     session_part = MagicMock()
 
     def _write(_meta, row, **_kwargs):
@@ -126,8 +126,24 @@ def _register_mocks(session_id: str, *, existing: dict | None = None):
     stack.enter_context(patch.object(session_reg.Session, "Subject", session_part))
     stack.enter_context(patch.object(session_reg, "new_id", return_value=session_id))
     stack.enter_context(patch.object(session_reg, "lookup_key", return_value=existing))
+    stack.enter_context(
+        patch.object(session_reg, "_foreign_subject_codes", return_value=foreign or [])
+    )
     write = stack.enter_context(patch.object(session_reg, "insert_tracked_row", side_effect=_write))
     return stack, session_part, write
+
+
+def test_register_session_rejects_subject_of_another_lab(monkeypatch):
+    monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "local")
+    stack, _, write = _register_mocks("a" * 32, foreign=["P012"])
+    with stack, pytest.raises(ValueError, match=r"\['P012'\] are not of lab 'mlai'"):
+        session_reg.register_session(
+            "morning-run",
+            date(2026, 1, 1),
+            lab={"lab_id": "mlai"},
+            subjects=[{"subject_id": "b" * 32}],
+        )
+    write.assert_not_called()
 
 
 def test_register_session_uses_settings_deployment(monkeypatch):
