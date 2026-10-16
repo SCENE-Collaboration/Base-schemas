@@ -52,7 +52,7 @@ def _foreign_subject_codes(subject_ids: Sequence[str], lab: DjKey[Lab]) -> list[
     if not subject_ids:
         return []
     subjects = Subject & [{"subject_id": sid} for sid in subject_ids]
-    return sorted((subjects - lab).fetch("subject_code"))
+    return sorted(str(code) for code in (subjects - lab).fetch("subject_code"))
 
 
 def register_session(
