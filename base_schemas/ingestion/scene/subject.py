@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from base_schemas.core.config import deployment_row_from_settings
+from base_schemas.core.config import deployment_row_from_settings, lab_key_from_settings
 from base_schemas.core.db import atomic, lookup_key, new_id
 from base_schemas.core.types import DjKey, DjRow
 from base_schemas.ingestion.normalization.code import normalize_code
@@ -108,19 +108,22 @@ def _stored_kind(key: DjKey[Subject]) -> str:
     return (Subject & key).fetch1("subject_kind")
 
 
-def subject_key(subject_code: str, *, lab: DjKey[Lab]) -> DjKey[Subject]:
+def subject_key(subject_code: str, *, lab: DjKey[Lab] | None = None) -> DjKey[Subject]:
     """Find a subject by its lab code.
 
     Args:
         subject_code: Lab code, e.g. ``"Tick"``.
-        lab: Lab primary key, e.g. ``{"lab_id": "mlai"}``.
+        lab: Lab primary key, e.g. ``{"lab_id": "mlai"}``. If omitted, built
+            from ``SCENE_LAB_ID``.
 
     Returns:
         Subject primary key, e.g. for ``Mouse & subject_key("Tick", lab=lab)``.
 
     Raises:
-        ValueError: If the code is invalid or not registered in ``lab``.
+        ValueError: If the code is invalid or not registered in ``lab``, or
+            ``lab`` is omitted and ``SCENE_LAB_ID`` is unset.
     """
+    lab = lab if lab is not None else lab_key_from_settings()
     code = normalize_code(subject_code, field="subject_code", max_length=64)
     key = lookup_key(Subject, {**lab, "subject_code": code})
     if key is None:

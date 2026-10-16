@@ -18,6 +18,9 @@ SCENE_DEPLOYMENT_ID
     the insertion helpers when the argument is omitted.
 SCENE_DEPLOYMENT_LABEL
     Optional human label stored on ``Deployment`` when using the env default.
+SCENE_LAB_ID
+    Optional lab of this deployment, e.g. ``mlai``. Default ``lab`` for the
+    lookup helpers (``subject_key``, ``session_key``); never for writes.
 """
 
 from __future__ import annotations
@@ -42,6 +45,7 @@ class Settings:
     auto_activate: bool
     deployment_id: str | None
     deployment_label: str
+    lab_id: str | None = None
 
     def db_name(self, suffix: str) -> str:
         """Full prefixed database name, e.g. ``'scene'`` → ``'dev_scene'``."""
@@ -62,11 +66,13 @@ def load_settings() -> Settings:
         )
     deployment_id = (os.environ.get("SCENE_DEPLOYMENT_ID") or "").strip() or None
     deployment_label = (os.environ.get("SCENE_DEPLOYMENT_LABEL") or "").strip()
+    lab_id = (os.environ.get("SCENE_LAB_ID") or "").strip() or None
     return Settings(
         prefix=prefix,
         auto_activate=_env_flag("AUTO_ACTIVATE"),
         deployment_id=deployment_id,
         deployment_label=deployment_label,
+        lab_id=lab_id,
     )
 
 
@@ -83,3 +89,15 @@ def deployment_row_from_settings() -> dict[str, str]:
         "deployment_id": settings.deployment_id,
         "label": settings.deployment_label,
     }
+
+
+def lab_key_from_settings() -> dict[str, str]:
+    """Build a lab key from ``SCENE_LAB_ID``.
+
+    Raises:
+        ValueError: If ``SCENE_LAB_ID`` is unset.
+    """
+    lab_id = load_settings().lab_id
+    if not lab_id:
+        raise ValueError("lab is required: pass lab={...} or set SCENE_LAB_ID")
+    return {"lab_id": lab_id}

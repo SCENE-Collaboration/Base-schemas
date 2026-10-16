@@ -139,6 +139,10 @@ mouse.fetch1()  # the row as a dict
 session_key("mousear-session-015", lab={"lab_id": "mlai"})
 ```
 
+With ``SCENE_LAB_ID=mlai`` set, ``lab`` can be omitted in these lookups:
+``subject_key("mouse-042")``. The write helpers (``register_*``) always take
+an explicit ``lab``.
+
 > [!NOTE]
 > Don't restrict ``Mouse`` by ``subject_code`` directly. It is a column of
 > ``Subject``, not ``Mouse``, so DataJoint ignores it and returns every mouse:
@@ -229,6 +233,7 @@ SCENE_REGISTRY.get("scene") is schema
 | `AUTO_ACTIVATE` | If truthy, `make_schema` / Lab / Session bind on import |
 | `SCENE_DEPLOYMENT_ID` | Stable id of this database; default `deployment` for all insertion helpers |
 | `SCENE_DEPLOYMENT_LABEL` | Optional human label stored on `Deployment` with the env default |
+| `SCENE_LAB_ID` | Optional lab of this deployment; default `lab` for `subject_key` / `session_key` (not for writes) |
 
 ## Examples
 

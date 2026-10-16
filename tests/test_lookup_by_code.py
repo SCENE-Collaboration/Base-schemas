@@ -31,3 +31,22 @@ def test_session_key_unknown_code_raises():
     with patch.object(session_reg, "lookup_key", return_value=None):
         with pytest.raises(ValueError, match="no session 's1'"):
             session_reg.session_key("s1", lab=LAB)
+
+
+@pytest.mark.parametrize(
+    ("module", "helper", "table"),
+    [(subject_reg, "subject_key", "Subject"), (session_reg, "session_key", "Session")],
+)
+def test_lookup_defaults_to_settings_lab(monkeypatch, module, helper, table):
+    monkeypatch.setenv("SCENE_LAB_ID", "mlai")
+    with patch.object(module, "lookup_key", return_value={"id": 1}) as lookup:
+        getattr(module, helper)("Tick")
+    assert lookup.call_args.args[0] is getattr(module, table)
+    assert lookup.call_args.args[1]["lab_id"] == "mlai"
+
+
+@pytest.mark.parametrize("helper", [subject_reg.subject_key, session_reg.session_key])
+def test_lookup_without_lab_or_setting_raises(monkeypatch, helper):
+    monkeypatch.delenv("SCENE_LAB_ID", raising=False)
+    with pytest.raises(ValueError, match="SCENE_LAB_ID"):
+        helper("Tick")

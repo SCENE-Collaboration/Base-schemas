@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from datetime import date
 from typing import Any
 
-from base_schemas.core.config import deployment_row_from_settings
+from base_schemas.core.config import deployment_row_from_settings, lab_key_from_settings
 from base_schemas.core.db import atomic, lookup_key, new_id
 from base_schemas.core.types import DjKey, DjRow
 from base_schemas.ingestion.normalization.code import normalize_code
@@ -136,19 +136,22 @@ def register_session(
         )
 
 
-def session_key(session_code: str, *, lab: DjKey[Lab]) -> DjKey[Session]:
+def session_key(session_code: str, *, lab: DjKey[Lab] | None = None) -> DjKey[Session]:
     """Find a session by its lab code.
 
     Args:
         session_code: Lab code, e.g. ``"Tick_2026-02-11_1"``.
-        lab: Lab primary key, e.g. ``{"lab_id": "mlai"}``.
+        lab: Lab primary key, e.g. ``{"lab_id": "mlai"}``. If omitted, built
+            from ``SCENE_LAB_ID``.
 
     Returns:
         Session primary key.
 
     Raises:
-        ValueError: If the code is invalid or not registered in ``lab``.
+        ValueError: If the code is invalid or not registered in ``lab``, or
+            ``lab`` is omitted and ``SCENE_LAB_ID`` is unset.
     """
+    lab = lab if lab is not None else lab_key_from_settings()
     code = normalize_code(session_code, field="session_code", max_length=128)
     key = lookup_key(Session, {**lab, "session_code": code})
     if key is None:
