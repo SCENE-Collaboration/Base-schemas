@@ -131,6 +131,7 @@ def _stamp(payload=_PAYLOAD, **overrides):
     return {
         **_LAB_KEY,
         "deployment_id": "old-dep",
+        "origin_deployment_id": "old-dep",
         "ingestion_version": "0.0.0",
         "content_hash": content_hash(payload),
         **overrides,
@@ -176,7 +177,8 @@ def test_new_key_is_inserted_and_stamped(deployment_table, policy):
     assert stamp["deployment_id"] == "dep1"
     assert stamp["ingestion_version"] == _WRITER_VERSION
     assert stamp["content_hash"] == content_hash(_PAYLOAD)
-    assert "updated_at" in stamp
+    assert stamp["origin_deployment_id"] == "dep1"
+    assert stamp["created_at"] == stamp["updated_at"]
     assert deployment_table.rows[("dep1",)] == _DEPLOYMENT
 
 
@@ -251,6 +253,10 @@ def test_overwrite_updates_row_and_stamp_without_warning_when_hash_matches(deplo
     assert stamp["deployment_id"] == "dep1"
     assert stamp["ingestion_version"] == _WRITER_VERSION
     assert deployment_table.rows[("dep1",)] == _DEPLOYMENT
+    # The origin of the row is kept.
+    update = meta.calls[0][1]
+    assert "origin_deployment_id" not in update and "created_at" not in update
+    assert stamp["origin_deployment_id"] == "old-dep"
 
 
 def test_overwrite_warns_and_updates_when_hash_differs(deployment_table):
@@ -284,6 +290,7 @@ def test_overwrite_inserts_stamp_when_missing(deployment_table):
     assert [name for name, _ in lab.calls] == ["update1"]
     assert [name for name, _ in meta.calls] == ["insert1"]
     assert meta.rows[("mlai",)]["content_hash"] == content_hash(_PAYLOAD)
+    assert meta.rows[("mlai",)]["origin_deployment_id"] == "dep1"
 
 
 def test_unknown_policy_is_rejected(deployment_table):

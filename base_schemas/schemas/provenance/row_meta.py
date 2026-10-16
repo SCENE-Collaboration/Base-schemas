@@ -17,7 +17,11 @@ from base_schemas.schemas.scene.subject import Subject
 
 # do not use this base class directly (no @schema decorator)
 class RowMetaBase(dj.Manual):
-    """Base class for row-level provenance tables."""
+    """Base class for row-level provenance tables.
+
+    ``deployment_id`` and ``updated_at`` record the last write;
+    ``origin_deployment_id`` and ``created_at`` the first stamp, never updated.
+    """
 
     tracked_table: ClassVar[type[dj.Manual]]
 
@@ -27,6 +31,8 @@ class RowMetaBase(dj.Manual):
     ingestion_version: varchar(32)
     content_hash: char(64)
     updated_at: datetime
+    -> Deployment.proj(origin_deployment_id='deployment_id')
+    created_at: datetime
     """
 
     @classmethod

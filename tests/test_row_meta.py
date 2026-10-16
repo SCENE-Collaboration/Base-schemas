@@ -17,6 +17,8 @@ _STAMP_COLUMNS = (
     "ingestion_version: varchar(32)",
     "content_hash: char(64)",
     "updated_at: datetime",
+    "-> Deployment.proj(origin_deployment_id='deployment_id')",
+    "created_at: datetime",
 )
 
 

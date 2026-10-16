@@ -11,8 +11,8 @@ Current package schemas (placeholders; definitions may change):
 - `base_schemas.schemas.scene.session` — `Experimenter`, `Session`
 - `base_schemas.schemas.provenance.deployment` — `Deployment`
 - `base_schemas.schemas.provenance.row_meta` — `LabRowMeta`, `ProjectRowMeta`,
-  `SubjectRowMeta`, `SessionRowMeta` (one stamp per tracked row: deployment,
-  writer version, content hash)
+  `SubjectRowMeta`, `SessionRowMeta` (one stamp per tracked row: last and
+  origin deployment, writer version, content hash)
 
 Also included:
 
@@ -28,8 +28,9 @@ Also included:
 
 Write through the helpers in ``base_schemas.ingestion`` rather than calling
 ``insert1`` directly. Every helper writes the row and a row-meta stamp
-(``LabRowMeta``, ``SessionRowMeta``, …) that records which deployment wrote
-it, the writer version, and a ``content_hash`` of the row's content.
+(``LabRowMeta``, ``SessionRowMeta``, …) that records which deployment last
+wrote it (and which first did, ``origin_deployment_id``), the writer version,
+and a ``content_hash`` of the row's content.
 The stamps are what later lets rows be compared and synced between databases.
 
 Each ingestion package has its own writer version (``SCENE_WRITER_VERSION``,

@@ -83,20 +83,23 @@ def insert_tracked_row(
     for table in (tracked_table, row_meta_table):
         assert_database_compatible(table.database)
     row_key = row_meta_table.tracked_key(row)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     stamp = {
         **row_key,
         **{name: deployment[name] for name in Deployment.primary_key},
         "ingestion_version": writer_version,
         "content_hash": content_hash(payload),
-        "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
+        "updated_at": now,
     }
+    # Origin fields are written with the first stamp only; updates keep them.
+    first_stamp = {**stamp, "origin_deployment_id": deployment["deployment_id"], "created_at": now}
 
     with atomic(tracked_table.connection):
         if not (tracked_table & row_key):
             _ensure_deployment(deployment)
             tracked_table.insert1(row)
             _insert_parts(parts, row_key)
-            row_meta_table.insert1(stamp)
+            row_meta_table.insert1(first_stamp)
             return row_key
 
         stored_hash = _stored_hash(row_meta_table, row_key)
@@ -116,7 +119,7 @@ def insert_tracked_row(
         for part_table, part_rows in (parts or {}).items():
             _replace_parts(part_table, row_key, part_rows)
         if stored_hash is None:
-            row_meta_table.insert1(stamp)
+            row_meta_table.insert1(first_stamp)
         else:
             row_meta_table.update1(stamp)
         return row_key

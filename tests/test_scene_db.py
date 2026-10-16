@@ -190,6 +190,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     assert meta["ingestion_version"] == SCENE_WRITER_VERSION
     assert meta["content_hash"] == content_hash(session_meta_payload(row, [subject_id]))
     assert meta["deployment_id"] == os.environ["SCENE_DEPLOYMENT_ID"]
+    assert meta["origin_deployment_id"] == os.environ["SCENE_DEPLOYMENT_ID"]
 
     # Same name + same content: VERIFY (default) returns the stored session.
     again = register_session(
@@ -211,6 +212,7 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
             "morning-run",
             dt.date(2026, 5, 2),
             lab=lab_key,
+            deployment={"deployment_id": "test-other", "label": "other"},
             if_exists=DuplicatePolicy.OVERWRITE,
         )
     assert updated == key
@@ -219,6 +221,13 @@ def test_register_session_mints_id_and_stores_name(dj_connection, monkeypatch):
     assert (SessionRowMeta & key).fetch1("content_hash") == content_hash(
         session_meta_payload((Session & key).fetch1(), [])
     )
+    # The stamp records the last writer; the origin of the row is kept.
+    restamped = (SessionRowMeta & key).fetch1()
+    assert (restamped["deployment_id"], restamped["origin_deployment_id"]) == (
+        "test-other",
+        "test-local",
+    )
+    assert restamped["created_at"] == meta["created_at"] <= restamped["updated_at"]
 
 
 def test_ensure_lab_duplicate_policy_roundtrip(dj_connection, monkeypatch):
