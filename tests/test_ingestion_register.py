@@ -41,13 +41,13 @@ def test_build_deployment_row_from_settings(monkeypatch):
 def test_session_meta_payload_includes_lookups_and_subjects():
     session = {
         "lab_id": "mlai",
-        "session_id": "deadbeef" * 4,
+        "session_id": uuid.UUID("deadbeef" * 4),
         "session_code": "morning-run",
         "session_date": date(2026, 5, 1),
         "project_name": "gaze_v1",
         "experimenter_code": "jdoe",
     }
-    subject_ids = ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+    subject_ids = [uuid.UUID("a" * 32)]  # as register_session passes them
     payload = session_reg.session_meta_payload(session, subject_ids)
     assert payload == {
         "session_date": "2026-05-01",
@@ -57,11 +57,14 @@ def test_session_meta_payload_includes_lookups_and_subjects():
         "subject_ids": subject_ids,
     }
     assert content_hash(payload) != content_hash({**payload, "session_code": "evening-run"})
+    # A UUID is hashed in its canonical (hyphenated) form, not as plain hex.
+    assert content_hash(payload) == content_hash({**payload, "subject_ids": [str(subject_ids[0])]})
+    assert content_hash(payload) != content_hash({**payload, "subject_ids": ["a" * 32]})
 
 
 def test_session_meta_payload_ignores_subject_order():
     session = {"session_code": "morning-run", "session_date": date(2026, 5, 1)}
-    first, second = "a" * 32, "b" * 32
+    first, second = uuid.UUID("a" * 32), uuid.UUID("b" * 32)
     payload = session_reg.session_meta_payload(session, [second, first])
     assert payload["subject_ids"] == [first, second]
     assert content_hash(payload) == content_hash(
@@ -115,7 +118,9 @@ def _fake_connection():
     return conn
 
 
-def _register_mocks(session_id: str, *, existing: dict | None = None, foreign: list | None = None):
+def _register_mocks(
+    session_id: uuid.UUID, *, existing: dict | None = None, foreign: list | None = None
+):
     """No-op transaction, minted id, mocked lookups, Session.Subject and insert_tracked_row."""
     session_part = MagicMock()
 
@@ -136,7 +141,7 @@ def _register_mocks(session_id: str, *, existing: dict | None = None, foreign: l
 
 def test_register_session_rejects_subject_of_another_lab(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "local")
-    stack, _, write = _register_mocks("a" * 32, foreign=["P012"])
+    stack, _, write = _register_mocks(uuid.UUID("a" * 32), foreign=["P012"])
     with stack, pytest.raises(ValueError, match=r"\['P012'\] are not of lab 'mlai'"):
         session_reg.register_session(
             "morning-run",
@@ -150,7 +155,7 @@ def test_register_session_rejects_subject_of_another_lab(monkeypatch):
 def test_register_session_uses_settings_deployment(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
     monkeypatch.setenv("SCENE_DEPLOYMENT_LABEL", "Env")
-    session_key = {"lab_id": "mlai", "session_id": "abc" * 10 + "ab"}
+    session_key = {"lab_id": "mlai", "session_id": uuid.UUID("abc" * 10 + "ab")}
     subjects = [{"subject_id": "a" * 32}]
 
     stack, session_part, write = _register_mocks(session_key["session_id"])
@@ -181,7 +186,7 @@ def test_register_session_uses_settings_deployment(monkeypatch):
 
 def test_register_session_allows_zero_subjects(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
-    session_key = {"lab_id": "mlai", "session_id": "d" * 32}
+    session_key = {"lab_id": "mlai", "session_id": uuid.UUID("d" * 32)}
     stack, session_part, write = _register_mocks(session_key["session_id"])
     with stack:
         key = session_reg.register_session(
@@ -197,7 +202,7 @@ def test_register_session_allows_zero_subjects(monkeypatch):
 def test_register_session_explicit_deployment_overrides_settings(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
     deployment = {"deployment_id": "override", "label": "x"}
-    stack, _, write = _register_mocks("x" * 32)
+    stack, _, write = _register_mocks(uuid.UUID("e" * 32))
     with stack:
         session_reg.register_session(
             "s",
@@ -212,7 +217,7 @@ def test_register_session_explicit_deployment_overrides_settings(monkeypatch):
 def test_register_session_writes_optional_lookup_fks(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
     subjects = [{"subject_id": "a" * 32}, {"subject_id": "b" * 32}]
-    stack, session_part, write = _register_mocks("c" * 32)
+    stack, session_part, write = _register_mocks(uuid.UUID("c" * 32))
     with stack:
         session_reg.register_session(
             "rich-session",
@@ -235,8 +240,8 @@ def test_register_session_writes_optional_lookup_fks(monkeypatch):
 @pytest.mark.parametrize("policy", list(DuplicatePolicy))
 def test_register_session_existing_code_reuses_id(monkeypatch, policy):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
-    existing = {"lab_id": "mlai", "session_id": "0" * 32}
-    stack, _, write = _register_mocks("1" * 32, existing=existing)
+    existing = {"lab_id": "mlai", "session_id": uuid.UUID("0" * 32)}
+    stack, _, write = _register_mocks(uuid.UUID("1" * 32), existing=existing)
     with stack:
         key = session_reg.register_session(
             "morning-run",
@@ -246,7 +251,7 @@ def test_register_session_existing_code_reuses_id(monkeypatch, policy):
             if_exists=policy,
         )
     assert key == existing
-    assert write.call_args.args[1]["session_id"] == "0" * 32
+    assert write.call_args.args[1]["session_id"] == uuid.UUID("0" * 32)
     assert write.call_args.kwargs["if_exists"] is policy
 
 
@@ -255,14 +260,17 @@ def test_register_session_joins_open_transaction(monkeypatch):
     conn = MagicMock()
     conn.in_transaction = True
     type(conn).transaction = PropertyMock(side_effect=AssertionError("nested transaction"))
-    stack, _, write = _register_mocks("f" * 32)
+    stack, _, write = _register_mocks(uuid.UUID("f" * 32))
     with stack, patch.object(session_reg.Session, "_connection", conn):
         session_reg.register_session("s", date(2026, 1, 1), lab={"lab_id": "mlai"})
     write.assert_called_once()
 
 
 def _subject_mocks(
-    *, existing: dict | None = None, minted: str = "a" * 32, stored_kind: str = "mouse"
+    *,
+    existing: dict | None = None,
+    minted: uuid.UUID = uuid.UUID("a" * 32),
+    stored_kind: str = "mouse",
 ):
     stack = ExitStack()
     stack.enter_context(patch.object(subject_reg, "_stored_kind", return_value=stored_kind))
@@ -286,10 +294,10 @@ def test_register_subject_mints_id_for_new_name(monkeypatch):
     with stack:
         key = subject_reg._register_subject(" P012 ", "mouse", lab={"lab_id": "mlai"})
 
-    assert key == {"subject_id": "a" * 32}
+    assert key == {"subject_id": uuid.UUID("a" * 32)}
     lookup.assert_called_once_with(subject_reg.Subject, {"lab_id": "mlai", "subject_code": "P012"})
     row = {
-        "subject_id": "a" * 32,
+        "subject_id": uuid.UUID("a" * 32),
         "lab_id": "mlai",
         "subject_code": "P012",
         "subject_kind": "mouse",
@@ -306,10 +314,10 @@ def test_register_subject_mints_id_for_new_name(monkeypatch):
 
 def test_register_subject_existing_name_reuses_id(monkeypatch):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
-    stack, _, write = _subject_mocks(existing={"subject_id": "0" * 32})
+    stack, _, write = _subject_mocks(existing={"subject_id": uuid.UUID("0" * 32)})
     with stack:
         key = subject_reg._register_subject("P012", "mouse", lab={"lab_id": "mlai"})
-    assert key == {"subject_id": "0" * 32}
+    assert key == {"subject_id": uuid.UUID("0" * 32)}
     assert write.call_args.args[1]["subject_kind"] == "mouse"
 
 
@@ -322,7 +330,9 @@ def test_register_subject_rejects_empty_name(monkeypatch):
 @pytest.mark.parametrize("policy", list(DuplicatePolicy))
 def test_register_subject_refuses_another_kind(monkeypatch, policy):
     monkeypatch.setenv("SCENE_DEPLOYMENT_ID", "from-env")
-    stack, _, write = _subject_mocks(existing={"subject_id": "0" * 32}, stored_kind="mouse")
+    stack, _, write = _subject_mocks(
+        existing={"subject_id": uuid.UUID("0" * 32)}, stored_kind="mouse"
+    )
     with stack, pytest.raises(ValueError, match="registered as 'mouse', not 'human'"):
         subject_reg.register_subject("P012", "human", lab={"lab_id": "mlai"}, if_exists=policy)
     write.assert_not_called()
