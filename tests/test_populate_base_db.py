@@ -4,7 +4,7 @@ import json
 import numpy as np
 import pytest
 
-from base_schemas.scripts.populate_base import populate_base
+from base_schemas.legacy.populate_base import populate_base
 
 
 def _mouse_row():
