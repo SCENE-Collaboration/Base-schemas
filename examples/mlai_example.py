@@ -38,18 +38,17 @@ from scene_pipelines.ingestion.scene import admin
 from scene_pipelines.schemas.mouse.mouse import Mouse, Strain
 from scene_pipelines.schemas.scene.project import Project
 from scene_pipelines.schemas.scene.session import Session
-from scene_pipelines.schemas.scene.subject import Subject
 
 from base_schemas.ingestion import (
     MLAI_LAB,
-    MLAI_LAB_KEY,
     ensure_mlai_experimenter,
     populate_base,
     register_mlai_mouse,
     register_mlai_session,
     scan_directory,
 )
-from base_schemas.schemas.mouse import Sacrificed, ScoreSheet
+from base_schemas.queries import available_mice, mlai_mice
+from base_schemas.schemas.mouse import ScoreSheet
 from base_schemas.schemas.session import SessionInfo, SessionScoreSheet
 
 
@@ -174,9 +173,9 @@ print("rig, task:", (SessionInfo & morning).fetch1("rig_id", "task_name"))
 check = (SessionScoreSheet * ScoreSheet & morning).fetch1()
 print("score sheet:", check["doc"], check["body_condition"])
 
-# Mice available for experiments: every mouse of the lab that is not sacrificed.
-available = (Subject * Mouse & MLAI_LAB_KEY) - Sacrificed
-print("available mice:", sorted(available.to_arrays("subject_code")))
+# Mice available for experiments: not sacrificed, not breeders.
+print("available mice:", sorted(available_mice().to_arrays("subject_code")))
+print("facility id of Tick:", mlai_mice("Tick").fetch1("mouse_id"))
 
 
 # --- 7. Legacy data: migrate the old mice / exp tables -----------------------------------
