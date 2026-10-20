@@ -12,6 +12,7 @@ dependencies = [
     "datajoint>=2.2",
     "numpy",  # ingestion reads the GUI's .npy metadata files
     "packaging", # required by datajoint > 1
+    "pydantic>=2.6",  # validates manifest entries; already required by datajoint (pydantic-settings)
     "scene-pipelines @ git+https://github.com/SCENE-Collaboration/SCENE-pipelines.git@dev",
 ]
 

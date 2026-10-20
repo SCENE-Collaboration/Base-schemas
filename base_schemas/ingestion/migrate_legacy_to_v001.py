@@ -12,8 +12,6 @@ the functions, after the connection is configured.
 
 from __future__ import annotations
 
-from typing import Any
-
 from scene_pipelines.core.db import lookup_key
 from scene_pipelines.schemas.scene.subject import Subject
 
@@ -22,7 +20,8 @@ from base_schemas.ingestion.ingestion import (
     ensure_mlai_experimenter,
     register_mlai_mouse,
 )
-from base_schemas.ingestion.populate import SCORE_SHEET_FIELDS, register_from_manifest
+from base_schemas.ingestion.manifest import SCORE_SHEET_FIELDS, SessionManifestEntry
+from base_schemas.ingestion.populate import register_from_manifest
 from base_schemas.schemas import mouse, session
 from base_schemas.schemas._schema import MLAI_SCHEMA_VERSION
 
@@ -87,7 +86,7 @@ def migrate_mice(strain_map: dict[str, dict], experimenter_codes: dict[str, str]
             table.insert1({**mouse_key, **row}, skip_duplicates=True)
 
 
-def manifest_from_legacy(task_names: list[str] | None = None) -> list[dict[str, Any]]:
+def manifest_from_legacy(task_names: list[str] | None = None) -> list[SessionManifestEntry]:
     """Legacy sessions as a manifest (see ``populate``); every task when none is named."""
     from base_schemas.legacy import exp as exp_legacy
     from base_schemas.legacy import mice as mice_legacy
@@ -108,18 +107,18 @@ def manifest_from_legacy(task_names: list[str] | None = None) -> list[dict[str, 
             }
             score_sheet = {name: sheet[name] for name in SCORE_SHEET_FIELDS}
         manifest.append(
-            {
-                "mouse_name": row["mouse_name"],
-                "session_date": row["doe"].isoformat(),
-                "attempt": row["attempt"],
-                "experimenter_name": row["experimenter_name"],
-                "rig_id": row["rig_id"],
-                "task_name": row["task_name"],
-                "anesthesia_name": row["anesthesia_name"],
-                "opto_name": row["opto_name"],
-                "session_notes": row["session_notes"],
-                "score_sheet": score_sheet,
-            }
+            SessionManifestEntry(
+                mouse_name=row["mouse_name"],
+                session_date=row["doe"],
+                attempt=row["attempt"],
+                experimenter_name=row["experimenter_name"],
+                rig_id=row["rig_id"],
+                task_name=row["task_name"],
+                anesthesia_name=row["anesthesia_name"],
+                opto_name=row["opto_name"],
+                session_notes=row["session_notes"],
+                score_sheet=score_sheet,
+            )
         )
     return manifest
 
