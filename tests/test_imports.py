@@ -12,5 +12,5 @@ def test_import_exp_module(dj_connection):
 
 
 def test_import_mlai_modules_without_db():
-    for name in ("base_schemas.schemas.session", "base_schemas.ingestion"):
+    for name in ("base_schemas.schemas.session", "base_schemas.ingestion", "base_schemas.queries"):
         assert importlib.import_module(name) is not None

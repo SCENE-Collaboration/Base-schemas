@@ -15,6 +15,7 @@ mlai (lab)           MouseInfo, SessionInfo, score sheets    base_schemas
 |---|---|
 | `base_schemas.schemas` | MLAI tables: `MouseInfo`, surgery, sacrifice, breeding, score sheets (`mouse`); `SessionInfo` and its lookups, `ExperimenterInfo` (`session`) |
 | `base_schemas.ingestion` | write helpers: `ensure_mlai_experimenter`, `register_mlai_mouse`, `register_mlai_session`; `populate_base` for the cron job; `migrate_legacy_to_v001` |
+| `base_schemas.queries` | `mlai_mice(*names)`: mice with their shared and lab fields; `available_mice()`: not sacrificed, not breeders |
 | `base_schemas.legacy` | the previous `mice` / `exp` tables and `populate_base`, frozen; kept for migrating existing data |
 
 Worked example: [`examples/mlai_example.py`](examples/mlai_example.py).

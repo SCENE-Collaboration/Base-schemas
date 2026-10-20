@@ -79,3 +79,19 @@ def test_populate_base_registers_new_sessions_once(mlai, tmp_path):
     assert (Session & new).fetch1("session_date") == dt.date(2026, 2, 12)
     assert (SessionInfo & new).fetch1("attempt") == 1
     assert populate_base(tmp_path, project=PROJECT_KEY) == []  # nothing new on a re-run
+
+
+def test_mlai_mice_and_available_mice(mlai):
+    from base_schemas.queries import available_mice, mlai_mice
+    from base_schemas.schemas.mouse import Breed, Sacrificed
+
+    for name, mouse_id in (("Avail", 90201), ("Gone", 90202), ("Breeder", 90203)):
+        mlai.register_mlai_mouse(name, "F", mouse_id=mouse_id)
+    gone, breeder = mlai_mice("Gone").keys()[0], mlai_mice("Breeder").keys()[0]
+    Sacrificed.insert1({**gone, "date_of_sacrifice": "2026-02-12", "reason": "test"})
+    Breed.insert1(breeder)
+
+    assert mlai_mice("Avail").fetch1("mouse_id") == 90201
+    assert len(mlai_mice("Avail", "Gone")) == 2
+    available = set(available_mice().to_arrays("subject_code"))
+    assert "Avail" in available and not available & {"Gone", "Breeder"}
