@@ -4,16 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "base-schemas"
-version = "2.0.0"
-description = "Mathis lab base DataJoint schemas"
+version = "3.0.0"
+description = "MLAI base DataJoint schemas extending the shared SCENE layer"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
-    # datajoint 2.2 dropped Python 3.8; pin to <2.2 there and require >=2.2 elsewhere.
-    # sync.py requires datajoint>=2.2 (dj.Instance); enforced at runtime on 3.8.
-    "datajoint>=0.13,<2.2; python_version < '3.9'",
-    "datajoint>=2.2; python_version >= '3.9'",
+    "datajoint>=2.2",
+    "numpy",  # ingestion reads the GUI's .npy metadata files
     "packaging", # required by datajoint > 1
+    "scene-pipelines @ git+https://github.com/SCENE-Collaboration/SCENE-pipelines.git@dev",
 ]
 
 [tool.setuptools.packages.find]
