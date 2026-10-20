@@ -123,7 +123,7 @@ def _discover_candidate_files(base_path):
 
 
 def _existing_session_keys():
-    from base_schemas.schemas.exp import Session
+    from base_schemas.legacy.exp import Session
 
     return {(row["mouse_name"], row["doe"], row["attempt"]) for row in Session.to_dicts()}
 
@@ -132,7 +132,7 @@ def _get_latest_session_date(mouse_relation):
     if hasattr(mouse_relation, "get_latest_session_date"):
         return mouse_relation.get_latest_session_date()
 
-    from base_schemas.schemas.exp import Session
+    from base_schemas.legacy.exp import Session
 
     session_dates, session_increments = (Session & mouse_relation).fetch(
         "doe",
@@ -209,8 +209,8 @@ def _compute_session_fields(mouse_relation, session_date, payload, fix_dates):
 
 
 def _insert_payload(payload, day, session_increment):
-    from base_schemas.schemas.exp import Session, SessionScoreSheet
-    from base_schemas.schemas.mice import MouseScoreSheet, MouseScoreSheet_WaterRestriction
+    from base_schemas.legacy.exp import Session, SessionScoreSheet
+    from base_schemas.legacy.mice import MouseScoreSheet, MouseScoreSheet_WaterRestriction
 
     insert_row = {
         **payload,
@@ -263,7 +263,7 @@ def populate_base(
 
     logger = logger or logging.getLogger(__name__)
 
-    from base_schemas.schemas.mice import Mouse
+    from base_schemas.legacy.mice import Mouse
 
     basemeta_path = Path(path_to_basemeta)
     if not basemeta_path.exists() or not basemeta_path.is_dir():
