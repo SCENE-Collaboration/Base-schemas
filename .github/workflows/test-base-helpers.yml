@@ -31,4 +31,4 @@ jobs:
 
       - name: Run helper unit tests
         run: |
-          pytest -q tests/test_populate_base_helpers.py tests/test_mlai_populate.py tests/test_imports.py::test_import_mlai_modules_without_db
+          pytest -q tests/test_populate_base_helpers.py tests/test_mlai_populate.py tests/test_sync.py tests/test_imports.py::test_import_mlai_modules_without_db
