@@ -39,10 +39,10 @@ def dj_connection():
 @pytest.fixture
 def base_schema_context(dj_connection):
     """Import test-prefixed schemas and drop them after each test."""
-    mice_module = import_module("base_schemas.schemas.mice")
+    mice_module = import_module("base_schemas.legacy.mice")
     mice_module = reload(mice_module)
 
-    exp_module = import_module("base_schemas.schemas.exp")
+    exp_module = import_module("base_schemas.legacy.exp")
     exp_module = reload(exp_module)
 
     yield {
