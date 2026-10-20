@@ -1,0 +1,28 @@
+"""MLAI write helpers on the shared SCENE layer.
+
+- ``ingestion``: register an experimenter, a mouse or a session (shared row + lab row)
+- ``populate``: register sessions from the transfer GUI's metadata files (cron job)
+- ``migrate_legacy_to_v001``: one-off migration from the legacy ``mice`` / ``exp`` tables
+"""
+
+from base_schemas.ingestion.ingestion import (
+    MLAI_LAB,
+    MLAI_LAB_KEY,
+    ensure_mlai_experimenter,
+    register_mlai_mouse,
+    register_mlai_session,
+    session_code,
+)
+from base_schemas.ingestion.populate import populate_base, register_from_manifest, scan_directory
+
+__all__ = [
+    "MLAI_LAB",
+    "MLAI_LAB_KEY",
+    "ensure_mlai_experimenter",
+    "populate_base",
+    "register_from_manifest",
+    "register_mlai_mouse",
+    "register_mlai_session",
+    "scan_directory",
+    "session_code",
+]
