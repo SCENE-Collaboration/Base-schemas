@@ -180,9 +180,9 @@ print("facility id of Tick:", mlai_mice("Tick").fetch1("mouse_id"))
 
 # --- 7. Legacy data: migrate the old mice / exp tables -----------------------------------
 # The legacy modules bind to the database on import, hence the late import.
-from base_schemas.ingestion import migrate_legacy_to_v001 as migrate  # noqa: E402
 from base_schemas.legacy import exp as legacy_exp  # noqa: E402
 from base_schemas.legacy import mice as legacy_mice  # noqa: E402
+from base_schemas.legacy import migrate_to_v001 as migrate  # noqa: E402
 
 # Stand-in for the existing lab database: one mouse with one session.
 legacy_mice.Strain.insert1(

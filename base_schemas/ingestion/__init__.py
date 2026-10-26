@@ -3,7 +3,6 @@
 - ``ingestion``: register an experimenter, a mouse or a session (shared row + lab row)
 - ``manifest``: ``SessionManifestEntry``, one validated session to register
 - ``populate``: register sessions from the transfer GUI's metadata files (cron job)
-- ``migrate_legacy_to_v001``: one-off migration from the legacy ``mice`` / ``exp`` tables
 """
 
 from base_schemas.ingestion.ingestion import (
