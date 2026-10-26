@@ -14,8 +14,19 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+def _to_date(value: Any) -> Any:
+    """Accept a date, a datetime, an ISO date/datetime string or ``np.datetime64``."""
+    if isinstance(value, np.datetime64):
+        value = np.datetime_as_string(value, unit="D")
+    if isinstance(value, dt.datetime):
+        return value.date()
+    if isinstance(value, str):
+        return dt.datetime.fromisoformat(value.strip()).date()
+    return value
+
+
 class ScoreSheetEntry(BaseModel):
-    """Welfare check of the session's mouse; all fields or none."""
+    """Welfare check of the session's mouse; all values or none."""
 
     model_config = ConfigDict(extra="forbid", coerce_numbers_to_str=True, frozen=True)
 
@@ -24,6 +35,12 @@ class ScoreSheetEntry(BaseModel):
     general_assay: str
     housing_assay: str
     weight_percentage: str  # percentage change from baseline, e.g. "2.5"
+    doc: dt.date | None = None  # date of the check; None: the session's date
+
+    @field_validator("doc", mode="before")
+    @classmethod
+    def _date_part(cls, value: Any) -> Any:
+        return _to_date(value)
 
 
 SCORE_SHEET_FIELDS = tuple(ScoreSheetEntry.model_fields)
@@ -52,14 +69,14 @@ class SessionManifestEntry(BaseModel):
     ) -> SessionManifestEntry:
         """Load the transfer GUI's flat dictionary into the canonical shape.
 
-        Maps ``doe`` to ``session_date``, nests the top-level score sheet fields,
-        and drops GUI fields that are not registered (e.g. ``day``, ``doc``).
+        Maps ``doe`` to ``session_date``, nests the top-level score sheet fields with the
+        check's date ``doc``, and drops GUI fields that are not registered (e.g. ``day``).
         """
         data = {name: raw[name] for name in cls.model_fields if name in raw}
         if "doe" in raw:
             data["session_date"] = raw["doe"]
         sheet = {name: raw[name] for name in SCORE_SHEET_FIELDS if raw.get(name) is not None}
-        data["score_sheet"] = sheet or None  # a partial sheet fails on ScoreSheetEntry
+        data["score_sheet"] = sheet if set(sheet) - {"doc"} else None  # a date alone: no sheet
         if source is not None:
             data["source"] = source
         return cls.model_validate(data)
@@ -67,14 +84,7 @@ class SessionManifestEntry(BaseModel):
     @field_validator("session_date", mode="before")
     @classmethod
     def _date_part(cls, value: Any) -> Any:
-        """Accept a date, a datetime, an ISO date/datetime string or ``np.datetime64``."""
-        if isinstance(value, np.datetime64):
-            value = np.datetime_as_string(value, unit="D")
-        if isinstance(value, dt.datetime):
-            return value.date()
-        if isinstance(value, str):
-            return dt.datetime.fromisoformat(value.strip()).date()
-        return value
+        return _to_date(value)
 
     @field_validator("anesthesia_name", "opto_name", "session_notes", mode="before")
     @classmethod

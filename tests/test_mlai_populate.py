@@ -42,7 +42,7 @@ def test_scan_directory_reads_json_and_npy(tmp_path):
         (dt.date(2026, 2, 12), 1),
     ]
     assert manifest[0].score_sheet is None
-    assert manifest[1].score_sheet.model_dump() == SCORE_SHEET
+    assert manifest[1].score_sheet.model_dump() == {**SCORE_SHEET, "doc": None}  # session date
     assert manifest[1].anesthesia_name == "awake"  # default
     assert manifest[1].source == "Tick_2026-02-12_1.json"
 
@@ -109,10 +109,20 @@ def test_manifest_round_trips_through_json():
     loaded = json.loads(json.dumps(entry.model_dump(mode="json")))
     assert SessionManifestEntry.model_validate(loaded) == entry
     assert "source" not in entry.register_kwargs()
-    assert entry.register_kwargs()["score_sheet"] == SCORE_SHEET
+    assert entry.register_kwargs()["score_sheet"] == {**SCORE_SHEET, "doc": None}
 
 
 def test_canonical_entry_rejects_flat_fields():
     canonical = SessionManifestEntry.from_gui_flat_dict(_metadata()).model_dump()
     with pytest.raises(ValueError, match=r"license\n\s+Extra inputs are not permitted"):
         SessionManifestEntry.model_validate({**canonical, "license": "N/A"})
+
+
+def test_score_sheet_keeps_the_date_of_the_check():
+    entry = SessionManifestEntry.from_gui_flat_dict(_metadata(**SCORE_SHEET, doc="2026-02-13"))
+    assert entry.score_sheet.doc == dt.date(2026, 2, 13)  # not the session date
+    assert entry.register_kwargs()["score_sheet"]["doc"] == dt.date(2026, 2, 13)
+
+
+def test_date_of_check_alone_is_no_score_sheet():
+    assert SessionManifestEntry.from_gui_flat_dict(_metadata(doc="2026-02-13")).score_sheet is None

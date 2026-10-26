@@ -92,7 +92,8 @@ def register_mlai_session(
     """Register a session of one mouse on the shared tables, and its ``SessionInfo``.
 
     ``score_sheet`` is the optional welfare check of the session: ``license``,
-    ``body_condition``, ``general_assay``, ``housing_assay``, ``weight_percentage``.
+    ``body_condition``, ``general_assay``, ``housing_assay``, ``weight_percentage``, and
+    optionally ``doc``, the date of the check (default: the session date).
     """
     mouse = lookup_key(Subject, {**MLAI_LAB_KEY, "subject_code": mouse_name})
     if mouse is None:
@@ -122,9 +123,9 @@ def register_mlai_session(
             skip_duplicates=True,
         )
         if score_sheet is not None:
-            check = {**mouse, "doc": session_date}
+            check = {**mouse, "doc": score_sheet.get("doc") or session_date}
             ScoreSheet.insert1(
-                {**check, **score_sheet}, skip_duplicates=True, ignore_extra_fields=True
+                {**score_sheet, **check}, skip_duplicates=True, ignore_extra_fields=True
             )
             WaterRestriction.insert1(
                 {**check, "weight_percentage": score_sheet["weight_percentage"]},
