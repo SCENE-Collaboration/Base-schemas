@@ -14,9 +14,9 @@ mlai (lab)           MouseInfo, SessionInfo, score sheets    base_schemas
 | Package | Content |
 |---|---|
 | `base_schemas.schemas` | MLAI tables: `MouseInfo`, surgery, sacrifice, breeding, score sheets (`mouse`); `SessionInfo` and its lookups, `ExperimenterInfo` (`session`) |
-| `base_schemas.ingestion` | write helpers: `ensure_mlai_experimenter`, `register_mlai_mouse`, `register_mlai_session`; `populate_base` for the cron job; `migrate_legacy_to_v001` |
+| `base_schemas.ingestion` | write helpers: `ensure_mlai_experimenter`, `register_mlai_mouse`, `register_mlai_session`; `populate_base` for the cron job |
 | `base_schemas.queries` | `mlai_mice(*names)`: mice with their shared and lab fields; `available_mice()`: not sacrificed, not breeders |
-| `base_schemas.legacy` | the previous `mice` / `exp` tables and `populate_base`, frozen; kept for migrating existing data |
+| `base_schemas.legacy` | the previous `mice` / `exp` tables and `populate_base`, frozen; `migrate_to_v001` (one-off migration to the shared layer) |
 
 Worked example: [`examples/mlai_example.py`](examples/mlai_example.py).
 
@@ -73,7 +73,7 @@ populate_base("/data/mice_metadata", project={"project_name": "mousear"}, suppre
 ## Migrating from the legacy tables
 
 `base_schemas.schemas.mice` / `exp` moved to `base_schemas.legacy` and are no
-longer written. `base_schemas.ingestion.migrate_legacy_to_v001` copies their
+longer written. `base_schemas.legacy.migrate_to_v001` copies their
 content through the same helpers as new data and leaves them untouched; every
 step can be re-run. See section 7 of the example. Two maps are decided by hand
 once: what each legacy `strain` value means on the shared layer (strain and
