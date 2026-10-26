@@ -51,21 +51,39 @@ def migrate_lookups() -> None:
         table.insert(legacy_table.to_dicts(), skip_duplicates=True)
 
 
-def migrate_mice(strain_map: dict[str, dict], experimenter_codes: dict[str, str]) -> None:
+def migrate_mice(
+    strain_map: dict[str, dict],
+    experimenter_codes: dict[str, str],
+    *,
+    skip_taken_ids: bool = False,
+) -> list[str]:
     """Register the legacy experimenters and mice, with their surgery, sacrifice and breeding rows.
 
     ``strain_map`` says what each legacy ``strain`` value means on the shared
     layer: ``{"strain": <Strain key or None>, "genotype": <text>}``. The legacy
     column mixed background strains and genotypes, so this is decided by hand.
     ``experimenter_codes`` maps each legacy ``experimenter_name`` to its shared code.
+
+    A legacy mouse whose facility id (``mouse_id``) already belongs to another mouse cannot be
+    registered - a ValueError is raised. With ``skip_taken_ids`` they are skipped instead.
+    The first mouse by name keeps the id.
     """
     from base_schemas.legacy import exp as exp_legacy
     from base_schemas.legacy import mice as mice_legacy
 
+    legacy_mice = mice_legacy.Mouse.to_dicts(order_by="mouse_name")
+    taken = _taken_facility_ids(legacy_mice)
+    if taken and not skip_taken_ids:
+        raise ValueError(
+            f"facility id already taken, nothing written: {taken} (skip_taken_ids skips them)"
+        )
+
     for row in exp_legacy.Experimenter.to_dicts():
         name = row["experimenter_name"]
         ensure_mlai_experimenter(experimenter_codes[name], name, row["mail"])
-    for row in mice_legacy.Mouse.to_dicts():
+    for row in legacy_mice:
+        if row["mouse_name"] in taken:
+            continue
         mapped = strain_map[row["strain"]]
         register_mlai_mouse(
             row["mouse_name"],
@@ -82,8 +100,22 @@ def migrate_mice(strain_map: dict[str, dict], experimenter_codes: dict[str, str]
     ]
     for legacy_table, table in pairs:
         for row in legacy_table.to_dicts():
-            mouse_key = lookup_key(Subject, {**MLAI_LAB_KEY, "subject_code": row.pop("mouse_name")})
-            table.insert1({**mouse_key, **row}, skip_duplicates=True)
+            name = row.pop("mouse_name")
+            if name not in taken:
+                mouse_key = lookup_key(Subject, {**MLAI_LAB_KEY, "subject_code": name})
+                table.insert1({**mouse_key, **row}, skip_duplicates=True)
+    return sorted(taken)
+
+
+def _taken_facility_ids(legacy_mice: list[dict]) -> dict[str, int]:
+    """Legacy mice whose facility id belongs to another mouse."""
+    ids, names = (mouse.MouseInfo * Subject & MLAI_LAB_KEY).to_arrays("mouse_id", "subject_code")
+    owners = {int(mouse_id): name for mouse_id, name in zip(ids, names)}
+    return {
+        row["mouse_name"]: int(row["mouse_id"])
+        for row in legacy_mice
+        if owners.setdefault(int(row["mouse_id"]), row["mouse_name"]) != row["mouse_name"]
+    }
 
 
 def manifest_from_legacy(task_names: list[str] | None = None) -> list[SessionManifestEntry]:
