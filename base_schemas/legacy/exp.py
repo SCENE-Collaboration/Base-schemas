@@ -2,7 +2,7 @@ import os
 
 import datajoint as dj
 
-from base_schemas.schemas import mice
+from base_schemas.legacy import mice
 
 """
     Minimal Schema version for experimental information

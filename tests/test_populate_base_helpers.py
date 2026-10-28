@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from base_schemas.scripts.populate_base import (
+from base_schemas.legacy.populate_base import (
     _compute_session_fields,
     _discover_candidate_files,
     _load_payload,

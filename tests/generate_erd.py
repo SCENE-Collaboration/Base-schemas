@@ -45,9 +45,15 @@ def wait_for_database(max_attempts=30, delay_seconds=2):
 
 
 def generate_erd(output_path="base_schemas_erd.png"):
-    from base_schemas.schemas import exp, mice
+    from scene_pipelines.core import SCENE_REGISTRY
 
-    (dj.Diagram(mice.schema) + dj.Diagram(exp.schema)).save(output_path)
+    import base_schemas.schemas.session  # noqa: F401  # registers the mlai schema
+
+    SCENE_REGISTRY.activate_all()
+    diagram = None
+    for schema in SCENE_REGISTRY.schemas.values():
+        diagram = dj.Diagram(schema) if diagram is None else diagram + dj.Diagram(schema)
+    diagram.save(output_path)
     print(f"Saved {output_path}")
 
 
